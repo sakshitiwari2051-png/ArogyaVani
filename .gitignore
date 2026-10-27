@@ -1,0 +1,24 @@
+.env
+.env.*
+!.env.example
+# caller memory + escalations — real phone numbers, never commit
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+ start
