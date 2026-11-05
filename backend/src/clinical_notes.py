@@ -7,9 +7,131 @@ SOAP Notes with official FHIR R4 ClinicalImpression resource schema.
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Any
+
+# Standard HL7 FHIR v4.0.1 ClinicalImpression allowed top-level elements
+FHIR_CLINICAL_IMPRESSION_ALLOWED_FIELDS = {
+    "resourceType",
+    "id",
+    "meta",
+    "implicitRules",
+    "language",
+    "text",
+    "contained",
+    "extension",
+    "modifierExtension",
+    "identifier",
+    "status",
+    "statusReason",
+    "code",
+    "description",
+    "subject",
+    "encounter",
+    "effectiveDateTime",
+    "effectivePeriod",
+    "date",
+    "assessor",
+    "previous",
+    "problem",
+    "investigation",
+    "protocol",
+    "summary",
+    "finding",
+    "prognosisCodeableConcept",
+    "prognosisReference",
+    "supportingInfo",
+    "note",
+}
+
+
+def export_fhir_r4(record: dict[str, Any]) -> dict[str, Any]:
+    """Export strictly compliant HL7 FHIR R4 ClinicalImpression resource.
+
+    Strips proprietary top-level keys ('patient', 'soap', 'compliance') and embeds
+    custom SOAP clinical telemetry inside official FHIR R4 complex extension blocks.
+    """
+    now_utc = record.get("effectiveDateTime") or datetime.now(timezone.utc).isoformat()
+    fhir_res: dict[str, Any] = {
+        "resourceType": "ClinicalImpression",
+        "id": record.get("id", f"ci-{uuid.uuid4().hex[:12]}"),
+        "meta": {
+            "profile": [
+                "https://nrces.in/ndhm/fhir/r4/StructureDefinition/ClinicalImpression"
+            ],
+            "lastUpdated": now_utc,
+        },
+        "status": record.get("status", "completed"),
+        "description": record.get("description", "Voice triage interaction"),
+        "subject": record.get(
+            "subject",
+            {
+                "reference": "Patient/anonymous",
+                "display": "Anonymous Caller",
+            },
+        ),
+        "effectiveDateTime": now_utc,
+        "date": record.get("date") or now_utc,
+        "summary": record.get("summary", ""),
+        "investigation": record.get("investigation", []),
+        "finding": record.get("finding", []),
+        "prognosisCodeableConcept": record.get("prognosisCodeableConcept", []),
+        "note": record.get("note", []),
+    }
+
+    # Embed structured SOAP telemetry inside official FHIR complex extension
+    if "soap" in record and isinstance(record["soap"], dict):
+        s = record["soap"]
+        fhir_res["extension"] = [
+            {
+                "url": "https://nrces.in/ndhm/fhir/r4/StructureDefinition/ClinicalImpressionSOAP",
+                "extension": [
+                    {
+                        "url": "subjective",
+                        "valueString": json.dumps(s.get("subjective", {})),
+                    },
+                    {
+                        "url": "objective",
+                        "valueString": json.dumps(s.get("objective", {})),
+                    },
+                    {
+                        "url": "assessment",
+                        "valueString": json.dumps(s.get("assessment", {})),
+                    },
+                    {
+                        "url": "plan",
+                        "valueString": json.dumps(s.get("plan", {})),
+                    },
+                ],
+            }
+        ]
+
+    return fhir_res
+
+
+def validate_fhir_r4(resource: dict[str, Any]) -> tuple[bool, list[str]]:
+    """Validate resource against HL7 FHIR R4 ClinicalImpression structural constraints."""
+    errors: list[str] = []
+    if resource.get("resourceType") != "ClinicalImpression":
+        errors.append(f"Invalid resourceType: {resource.get('resourceType')}")
+    if not resource.get("id"):
+        errors.append("Missing required resource id")
+    if resource.get("status") not in ("in-progress", "completed", "entered-in-error"):
+        errors.append(f"Invalid status: {resource.get('status')}")
+    if (
+        not resource.get("subject")
+        or not isinstance(resource["subject"], dict)
+        or "reference" not in resource["subject"]
+    ):
+        errors.append("Missing valid subject Reference")
+
+    for k in resource:
+        if k not in FHIR_CLINICAL_IMPRESSION_ALLOWED_FIELDS:
+            errors.append(f"Illegal top-level non-FHIR field: '{k}'")
+
+    return (len(errors) == 0, errors)
 
 
 def generate_soap_note(

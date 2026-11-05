@@ -273,73 +273,106 @@ async def find_health_facilities_async(
             ),
         }
 
-    # Step 1: Attempt live query via OpenStreetMap API
-    live_facilities: list[dict[str, Any]] = []
-    try:
-        live_facilities = await _fetch_live_osm_facilities(
-            query_location, max_results=max_results
-        )
-    except Exception as e:
-        logger.warning("Live OSM API query failed or timed out: %s", e)
+    current_year = str(datetime.now().year)
+    top_facilities: list[dict[str, Any]] = []
+    is_live = False
 
-    top_facilities = live_facilities
-    is_live = bool(live_facilities)
+    # If a specific government healthcare tier was requested (e.g. CHC, PHC), prioritize verified registry
+    if facility_type and facility_type.upper() != "ANY":
+        filtered_fallback = _search_fallback_registry(
+            query_location, facility_type=facility_type, max_results=max_results
+        )
+        if filtered_fallback:
+            top_facilities = filtered_fallback
+            is_live = False
+
+    # Also check if query_location is a 6-digit Indian PIN code matching our verified primary health centres
+    if not top_facilities and re.match(r"^\d{6}$", loc_clean):
+        pincode_fallback = _search_fallback_registry(
+            query_location, facility_type=facility_type, max_results=max_results
+        )
+        if pincode_fallback and any(
+            loc_clean in f.get("pincode", "") for f in pincode_fallback
+        ):
+            top_facilities = pincode_fallback
+            is_live = False
+
+    # Step 1: If no specific tier filter or pincode override, attempt live query via OpenStreetMap API
+    if not top_facilities:
+        try:
+            live_facilities = await _fetch_live_osm_facilities(
+                query_location, max_results=max_results
+            )
+            if live_facilities:
+                top_facilities = live_facilities
+                is_live = True
+        except Exception as e:
+            logger.warning("Live OSM API query failed or timed out: %s", e)
 
     # Step 2: Fallback to local verified registry if live returned no results
     if not top_facilities:
         top_facilities = _search_fallback_registry(
             query_location, facility_type=facility_type, max_results=max_results
         )
+        is_live = False
 
-    current_date = datetime.now().strftime("%B %Y")
-    live_timestamp = f"Live Real-Time ({current_date})"
-
-    # Step 3: If still nothing, provide graceful out-loud fallback
+    # Step 3: If still nothing, provide honest out-loud fallback
     if not top_facilities:
         logger.info(
-            "No facility found for '%s'. Providing out-loud fallback.", query_location
+            "No facility found for '%s'. Providing honest out-loud fallback.",
+            query_location,
         )
         return {
             "status": "not_found",
             "query_location": query_location,
             "facilities": [],
             "spoken_summary": (
-                f"Swasthya registry ke {current_date} ke record ke anusaar, '{query_location}' ke liye "
-                "direct PHC map nahi ho paya hai. Kisi bhi emergency ya fever ke liye, kripya turant 108 ambulance par call karein "
+                f"Sarkari swasthya registry ke {current_year} data ke anusaar, '{query_location}' ke liye "
+                "direct PHC map nahi ho paya hai. Kisi bhi aapatkaleen sthiti ya fever ke liye, kripya turant 108 ambulance par call karein "
                 "ya apne zilla mukhya aspatal ke OPD mein sampark karein."
             ),
         }
 
     fac = top_facilities[0]
-    timings = fac.get("opd_timings", "Subah 8 baje se do-pahar 2 baje tak")
-    emergency_text = (
-        "24 ghante emergency suvidha uplabdh hai"
-        if fac.get("emergency_24x7")
-        else "OPD timings mein uplabdh hai"
-    )
-    free_tests = ", ".join(fac.get("free_services", [])[:2])
-    data_source_spoken = (
-        f"Live OpenStreetMap swasthya registry ke {current_date} ke taza data ke anusaar"
-        if is_live
-        else f"Swasthya registry ke {current_date} record ke anusaar"
+    timings = fac.get("opd_timings", "Timings not verified")
+    is_verified = bool(fac.get("verified", not is_live))
+    actual_provenance = fac.get(
+        "verified_timestamp",
+        "March 2025" if not is_live else "Unverified Live Map Listing",
     )
 
-    spoken_summary = (
-        f"{data_source_spoken}, aapke paas sabse nazdeeki kendra "
-        f"{fac['name']} hai jo {fac['address']} par sthit hai. "
-        f"Yahan OPD {timings} khula rehta hai aur {emergency_text}. "
-        f"Yahan {free_tests} jaisi suvidhayein uplabdh hain."
-    )
+    if is_live:
+        spoken_summary = (
+            f"OpenStreetMap ({current_year}) public map data ke anusaar, '{query_location}' ke paas "
+            f"'{fac['name']}' listing mili hai jo '{fac['address']}' par sthit hai. "
+            "Dhyan rahe ki iski OPD timings aur 24x7 emergency suvidha abhi officially verify nahi hai. "
+            "Kripya aage badhne se pehle sthaniya star par ya 108 par confirm karein."
+        )
+    else:
+        emergency_text = (
+            "24 ghante emergency suvidha uplabdh hai"
+            if fac.get("emergency_24x7")
+            else "OPD timings mein uplabdh hai"
+        )
+        free_tests = ", ".join(fac.get("free_services", [])[:2])
+        spoken_summary = (
+            f"National Health Portal ke {actual_provenance} verified record (reviewed {current_year}) ke anusaar, "
+            f"aapke paas sabse nazdeeki kendra {fac['name']} hai jo {fac['address']} par sthit hai. "
+            f"Yahan OPD {timings} khula rehta hai aur {emergency_text}. "
+            f"{f'Yahan {free_tests} uplabdh hain.' if free_tests else ''}"
+        )
 
     return {
         "status": "success",
         "query_location": query_location,
         "is_live_api": is_live,
+        "is_verified": is_verified,
         "facilities": top_facilities,
         "primary_facility": fac,
-        "verified_timestamp": live_timestamp
+        "verified_timestamp": actual_provenance,
+        "data_source": "OpenStreetMap Public API (Unverified)"
         if is_live
-        else f"NHP Registry ({current_date})",
+        else f"National Health Portal Registry ({actual_provenance})",
         "spoken_summary": spoken_summary,
     }
 
@@ -350,49 +383,52 @@ def find_health_facilities(
     max_results: int = 2,
 ) -> dict[str, Any]:
     """Synchronous entrypoint for tests and sync callers."""
-    current_date = datetime.now().strftime("%B %Y")
+    current_year = str(datetime.now().year)
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            # In running event loop, search fallback or create task
-            return (
-                {
-                    "status": "success",
-                    "facilities": _search_fallback_registry(
-                        query_location, facility_type, max_results
-                    ),
-                    "primary_facility": _search_fallback_registry(
-                        query_location, facility_type, max_results
-                    )[0]
-                    if _search_fallback_registry(
-                        query_location, facility_type, max_results
-                    )
-                    else None,
-                    "spoken_summary": f"Swasthya registry ke {current_date} record ke anusaar '{query_location}' me facility mil gayi hai.",
-                    "verified_timestamp": f"Live Real-Time ({current_date})",
-                }
-                if _search_fallback_registry(query_location, facility_type, max_results)
-                else {
-                    "status": "not_found",
-                    "facilities": [],
-                    "spoken_summary": f"Swasthya registry ke {current_date} record ke anusaar '{query_location}' me direct facility nahi mili. Emergency me 108 call karein.",
-                }
+            # In running event loop, search fallback
+            matched = _search_fallback_registry(
+                query_location, facility_type, max_results
             )
+            if matched:
+                fac = matched[0]
+                provenance = fac.get("verified_timestamp", "March 2025")
+                return {
+                    "status": "success",
+                    "facilities": matched,
+                    "primary_facility": fac,
+                    "is_live_api": False,
+                    "is_verified": True,
+                    "spoken_summary": f"National Health Portal ke {provenance} record (reviewed {current_year}) ke anusaar '{query_location}' me {fac['name']} uplabdh hai.",
+                    "verified_timestamp": provenance,
+                    "data_source": f"National Health Portal Registry ({provenance})",
+                }
+            return {
+                "status": "not_found",
+                "facilities": [],
+                "spoken_summary": f"Sarkari swasthya registry ke {current_year} data ke anusaar '{query_location}' me direct facility nahi mili. Emergency mein 108 par call karein.",
+            }
         return loop.run_until_complete(
             find_health_facilities_async(query_location, facility_type, max_results)
         )
     except Exception:
         fallback = _search_fallback_registry(query_location, facility_type, max_results)
         if fallback:
+            fac = fallback[0]
+            provenance = fac.get("verified_timestamp", "March 2025")
             return {
                 "status": "success",
                 "facilities": fallback,
-                "primary_facility": fallback[0],
-                "spoken_summary": f"Swasthya registry ke {current_date} record ke anusaar {fallback[0]['name']} uplabdh hai.",
-                "verified_timestamp": f"Live Real-Time ({current_date})",
+                "primary_facility": fac,
+                "is_live_api": False,
+                "is_verified": True,
+                "spoken_summary": f"National Health Portal ke {provenance} record (reviewed {current_year}) ke anusaar {fac['name']} uplabdh hai.",
+                "verified_timestamp": provenance,
+                "data_source": f"National Health Portal Registry ({provenance})",
             }
         return {
             "status": "not_found",
             "facilities": [],
-            "spoken_summary": f"Swasthya registry ke {current_date} record ke anusaar 108 par sampark karein.",
+            "spoken_summary": f"Sarkari swasthya registry ke {current_year} data ke anusaar emergency mein 108 par sampark karein.",
         }

@@ -68,12 +68,16 @@ export async function POST(req: Request) {
     const existingCookieId = cookieMatch ? cookieMatch[1] : null;
 
     const participantName = body?.participant_name || body?.name || 'Caller';
-    // Use collision-resistant UUIDs (128-bit entropy) instead of 4-digit random numbers
-    const participantIdentity =
-      body?.user_id ||
-      body?.participant_identity ||
-      existingCookieId ||
-      `caller_${crypto.randomUUID()}`;
+    // Security: Caller identity is exclusively server-managed to prevent caller impersonation.
+    // Client cannot supply arbitrary existing caller identities in the request body.
+    const isValidCallerId =
+      existingCookieId &&
+      typeof existingCookieId === 'string' &&
+      /^caller_[0-9a-fA-F-]{36}$/.test(existingCookieId);
+
+    const participantIdentity = isValidCallerId
+      ? existingCookieId
+      : `caller_${crypto.randomUUID()}`;
 
     const langCookieMatch = cookieHeader.match(/arogyavani_lang=([^;]+)/);
     const lang =

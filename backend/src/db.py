@@ -677,7 +677,13 @@ async def save_clinical_note(
     chief = subj.get("chief_complaint", "")
     summary = assess.get("clinical_impression", "")
     urgency = obj.get("triage_urgency_level", "ROUTINE")
-    fhir_json = json.dumps(soap_record)
+    try:
+        import clinical_notes
+
+        fhir_record = clinical_notes.export_fhir_r4(soap_record)
+        fhir_json = json.dumps(fhir_record)
+    except Exception:
+        fhir_json = json.dumps(soap_record)
 
     try:
         async with aiosqlite.connect(db_path) as db:

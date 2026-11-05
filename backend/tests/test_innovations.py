@@ -85,3 +85,24 @@ def test_gnani_adapter_initialization_defaults() -> None:
     assert client.base_url == "https://api.vachana.ai"
     # When no key is provided, should be unconfigured but safe
     assert isinstance(client.is_configured, bool)
+
+
+def test_fhir_r4_strict_schema_validation() -> None:
+    soap = clinical_notes.generate_soap_note(
+        caller_name="Anjali Verma",
+        user_id="+919876543210",
+        symptoms_text="Severe headache and nausea",
+        triage_outcome="Advised primary health centre OPD",
+        urgency="medium",
+        advised_facility="PHC Wagholi",
+    )
+    fhir_res = clinical_notes.export_fhir_r4(soap)
+    is_valid, errors = clinical_notes.validate_fhir_r4(fhir_res)
+    assert is_valid, f"FHIR validation failed with errors: {errors}"
+    assert fhir_res["resourceType"] == "ClinicalImpression"
+    assert "subject" in fhir_res
+    assert fhir_res["subject"]["display"] == "Anjali Verma"
+    assert "patient" not in fhir_res  # No illegal top-level non-FHIR fields!
+    assert "soap" not in fhir_res  # SOAP is embedded inside standard extension!
+    assert "extension" in fhir_res
+    assert fhir_res["extension"][0]["url"].endswith("ClinicalImpressionSOAP")

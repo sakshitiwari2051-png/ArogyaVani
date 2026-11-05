@@ -488,9 +488,24 @@ export function SamarDashboard() {
       setIsForgetting(true);
       const res = await fetch('/api/forget', { method: 'POST' });
       if (res.ok) {
-        toast.success('Personal consultation memory erased from database.');
+        // Complete client-side privacy purge: remove stored chat transcripts and sessions
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          sessionStorage.clear();
+        } catch (storageErr) {
+          console.warn('Storage purge error:', storageErr);
+        }
+        setSessions([]);
+        setActiveChatId(null);
+        if (typeof document !== 'undefined') {
+          document.cookie = 'arogyavani_caller_id=; Path=/; Max-Age=0; SameSite=Lax';
+        }
+        toast.success(
+          'All consultation records, clinical notes, and local chat history permanently erased.'
+        );
       } else {
-        toast.error('Failed to erase memory.');
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to erase memory.');
       }
     } catch (err) {
       console.error('Forget me error:', err);
@@ -1109,6 +1124,20 @@ export function SamarDashboard() {
                         setSelectedLang(l.value);
                         if (typeof document !== 'undefined') {
                           document.cookie = `arogyavani_lang=${l.value}; Path=/; SameSite=Lax`;
+                        }
+                        // Real-time language propagation to active LiveKit voice session
+                        if (room && isConnected && room.localParticipant) {
+                          try {
+                            const payload = new TextEncoder().encode(
+                              JSON.stringify({ type: 'language_change', language: l.value })
+                            );
+                            room.localParticipant.publishData(payload, {
+                              reliable: true,
+                              topic: 'language_change',
+                            });
+                          } catch (langErr) {
+                            console.warn('Failed to publish language change to room:', langErr);
+                          }
                         }
                         setIsLangOpen(false);
                       }}

@@ -66,17 +66,17 @@ export async function GET(req: Request) {
         `[AUDIT] Authorized escalation records retrieved at ${new Date().toISOString()} (filter: ${status})`
       );
 
-      // Strictly project only role-relevant clinical fields (never internal credentials or uncontrolled fields)
+      // Strictly project clinical escalation fields matching backend db.py schema
       const query = status
         ? db.prepare(
-            `SELECT id, caller_name, severity, status, created_at, complaint, callback_method, resolution_note, updated_at
+            `SELECT id, caller_user_id, caller_name, language, urgency, what_happened, already_checked, followup_method, callback_phone, status, resolution_note, created_at, updated_at
              FROM escalations
              WHERE status = ?
              ORDER BY created_at DESC
              LIMIT 100`
           )
         : db.prepare(
-            `SELECT id, caller_name, severity, status, created_at, complaint, callback_method, resolution_note, updated_at
+            `SELECT id, caller_user_id, caller_name, language, urgency, what_happened, already_checked, followup_method, callback_phone, status, resolution_note, created_at, updated_at
              FROM escalations
              ORDER BY created_at DESC
              LIMIT 100`
@@ -128,7 +128,7 @@ export async function PATCH(req: Request) {
 
       const row = db
         .prepare(
-          'SELECT id, caller_name, severity, status, created_at, complaint, callback_method, resolution_note, updated_at FROM escalations WHERE id = ?'
+          'SELECT id, caller_user_id, caller_name, language, urgency, what_happened, already_checked, followup_method, callback_phone, status, resolution_note, created_at, updated_at FROM escalations WHERE id = ?'
         )
         .get(id);
       return NextResponse.json({ escalation: { ...row, ref: ref(id) } });

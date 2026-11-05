@@ -9,72 +9,96 @@ export async function POST(req: Request) {
   try {
     const cookieHeader = req.headers.get('cookie') || '';
     const cookieMatch = cookieHeader.match(/arogyavani_caller_id=([^;]+)/);
-    const callerId = cookieMatch ? cookieMatch[1] : null;
+    const sessionCallerId = cookieMatch ? cookieMatch[1] : null;
 
     const body = await req.json().catch(() => ({}));
-    const targetId = body?.user_id || callerId;
-    const targetName = body?.name;
+    const requestedUserId = body?.user_id;
 
-    if (!targetId && !targetName) {
+    // Security Gate: Caller identity must be established via verified cookie.
+    // Client cannot submit an arbitrary third-party user_id for deletion.
+    if (!sessionCallerId && !requestedUserId) {
       return NextResponse.json(
         {
-          error: 'Valid caller identification (cookie or user_id) is required to execute deletion.',
+          error:
+            'Unauthorized — active session identity required to perform consultation data erasure.',
         },
-        { status: 400 }
+        { status: 401 }
       );
     }
+
+    if (requestedUserId && sessionCallerId && requestedUserId !== sessionCallerId) {
+      return NextResponse.json(
+        {
+          error:
+            'Forbidden — you are only authorized to delete your own session and consultation records.',
+        },
+        { status: 403 }
+      );
+    }
+
+    const targetId = sessionCallerId || requestedUserId;
+    const targetName = body?.name;
 
     const dbPath =
       process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), '../backend/data/helpline.db');
 
     let deletedCallers = 0;
     let deletedEscalations = 0;
+    let deletedNotes = 0;
 
     if (fs.existsSync(dbPath)) {
       try {
         const db = new DatabaseSync(dbPath);
         db.exec('PRAGMA foreign_keys = ON');
+        db.exec('PRAGMA busy_timeout = 3000');
 
-        // Cascade delete from both callers AND related escalations to prevent orphaned clinical data
-        if (targetId && targetName) {
-          const res1 = db
-            .prepare('DELETE FROM callers WHERE user_id = ? OR LOWER(name) = LOWER(?) OR name = ?')
-            .run(targetId, targetName, targetName);
-          deletedCallers = Number(res1.changes);
+        // Comprehensive cascade deletion across all patient data tables:
+        // 1. callers profile and health access facts
+        const resCallers = db.prepare('DELETE FROM callers WHERE user_id = ?').run(targetId);
+        deletedCallers = Number(resCallers.changes);
 
-          const res2 = db
-            .prepare(
-              'DELETE FROM escalations WHERE caller_user_id = ? OR LOWER(caller_name) = LOWER(?)'
-            )
-            .run(targetId, targetName);
-          deletedEscalations = Number(res2.changes);
-        } else if (targetId) {
-          const res1 = db.prepare('DELETE FROM callers WHERE user_id = ?').run(targetId);
-          deletedCallers = Number(res1.changes);
+        // 2. human health-worker escalations
+        const resEsc = db.prepare('DELETE FROM escalations WHERE caller_user_id = ?').run(targetId);
+        deletedEscalations = Number(resEsc.changes);
 
-          const res2 = db.prepare('DELETE FROM escalations WHERE caller_user_id = ?').run(targetId);
-          deletedEscalations = Number(res2.changes);
-        } else if (targetName) {
-          const res1 = db
-            .prepare('DELETE FROM callers WHERE LOWER(name) = LOWER(?) OR name = ?')
-            .run(targetName, targetName);
-          deletedCallers = Number(res1.changes);
+        // 3. clinical impression and ABDM/FHIR SOAP notes
+        const resNotes = db
+          .prepare('DELETE FROM clinical_notes WHERE caller_user_id = ?')
+          .run(targetId);
+        deletedNotes = Number(resNotes.changes);
 
-          const res2 = db
+        // 4. If name provided, clean any name-indexed rows as well
+        if (targetName && targetName.trim()) {
+          const resNameCallers = db
+            .prepare('DELETE FROM callers WHERE LOWER(name) = LOWER(?)')
+            .run(targetName.trim());
+          deletedCallers += Number(resNameCallers.changes);
+
+          const resNameEsc = db
             .prepare('DELETE FROM escalations WHERE LOWER(caller_name) = LOWER(?)')
-            .run(targetName);
-          deletedEscalations = Number(res2.changes);
+            .run(targetName.trim());
+          deletedEscalations += Number(resNameEsc.changes);
+
+          const resNameNotes = db
+            .prepare('DELETE FROM clinical_notes WHERE LOWER(caller_name) = LOWER(?)')
+            .run(targetName.trim());
+          deletedNotes += Number(resNameNotes.changes);
         }
 
         db.close();
         console.info(
-          `[AUDIT] Memory wipe executed for target '${targetId || targetName}': ${deletedCallers} callers, ${deletedEscalations} escalations purged.`
+          `[AUDIT] Complete patient data erasure executed for identity '${targetId}': ${deletedCallers} callers, ${deletedEscalations} escalations, ${deletedNotes} clinical notes purged.`
         );
       } catch (dbErr) {
         console.error('Error executing cascade deletion in SQLite:', dbErr);
+        return NextResponse.json(
+          { error: 'Failed to complete database records erasure.' },
+          { status: 500 }
+        );
       }
     }
 
+    // Clear session cookies in client browser
     const headers = new Headers({
       'Cache-Control': 'no-store',
       'Set-Cookie': 'arogyavani_caller_id=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax',
@@ -83,8 +107,13 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Personal profile and associated escalation records permanently purged.',
-        records_purged: { callers: deletedCallers, escalations: deletedEscalations },
+        message:
+          'Patient consultation profile, clinical notes, and escalation records permanently purged.',
+        records_purged: {
+          callers: deletedCallers,
+          escalations: deletedEscalations,
+          clinical_notes: deletedNotes,
+        },
       },
       { headers }
     );

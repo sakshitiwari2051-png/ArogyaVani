@@ -171,3 +171,30 @@ def test_end_call_allowed_after_escalation():
     assert out == "Call ended."
     # English locale must not produce a Hinglish goodbye.
     assert not re.search(r"theek hai|shubh ho", said[0], re.IGNORECASE), said[0]
+
+
+def test_mixed_negation_and_positive_emergency_scanner():
+    """Test adversarial case: sentence has both a negated symptom and a positive emergency symptom."""
+    from agent import is_negated_phrase
+
+    def scan_emergency(text: str) -> bool:
+        for m in EMERGENCY_RE.finditer(text):
+            if not is_negated_phrase(text, m.span()):
+                return True
+        return False
+
+    # 1. First symptom negated, second symptom true emergency -> MUST detect emergency!
+    mixed_utterance = "Mujhe chest pain nahi hai, but I cannot breathe properly"
+    assert scan_emergency(mixed_utterance) is True
+
+    # 2. Hindi mixed: first negated, second positive emergency
+    hindi_mixed = "Seene mein dard bilkul nahi hai, par marij behosh ho gaya hai"
+    assert scan_emergency(hindi_mixed) is True
+
+    # 3. Purely negated emergency symptoms -> MUST NOT latch emergency
+    pure_negated = "Mujhe koi bhi chest pain nahi hai aur dil ka daura nahi pada hai"
+    assert scan_emergency(pure_negated) is False
+
+    # 4. English denied symptom
+    english_negated = "I don't have any chest pain, just mild sneezing"
+    assert scan_emergency(english_negated) is False

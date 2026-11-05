@@ -131,15 +131,23 @@ RAW_TAG_REGEX = re.compile(r"</?function[^>]*>", re.IGNORECASE)
 def is_negated_phrase(text: str, matched_span: tuple[int, int]) -> bool:
     """Check if the matched clinical symptom keyword is preceded or followed by negation markers."""
     start, end = matched_span
-    pre = text[max(0, start - 35) : start].lower()
-    post = text[end : min(len(text), end + 35)].lower()
+    pre = text[max(0, start - 40) : start].lower()
+    post = text[end : min(len(text), end + 40)].lower()
 
-    # Preceding negation: "no", "not", "without", "don't have", "koi"
-    if re.search(r"\b(no|not|without|denies|neither|don'?t have|koi)\s*$", pre):
+    # Preceding negation: "no", "not", "without", "don't have", "doesn't have", "denies", "neither", "koi"
+    if re.search(
+        r"\b(no|not|without|denies|neither|don'?t have|doesn'?t have|never had|free from|koi|kisi bhi tarah ka)\s*(any|such|bhi)?\s*$",
+        pre,
+    ):
         return True
 
-    # Succeeding negation: "nahi hai", "nahin", "na ho", "nahi", "not present"
-    return bool(re.search(r"^\s*(nahi|nahin|na|not|negative)\b", post))
+    # Succeeding negation: "nahi hai", "nahin", "na ho", "nahi", "not present", "bilkul nahi", "negative"
+    if re.search(r"^\s*(bhi\s+)?(bilkul\s+)?(nahi|nahin|na|not|negative)\b", post):
+        return True
+
+    return bool(
+        re.search(r"^\s*(is\s+)?(not\s+present|denied|ruled\s+out|absent)\b", post)
+    )
 
 
 # A red flag must not depend on the LLM noticing it. This scan runs on every final
@@ -201,6 +209,18 @@ INDIC_LOCALES: dict[str, str] = {
     "odia": "or-IN",
     "as": "as-IN",
     "assamese": "as-IN",
+    "ks": "ks-IN",
+    "kashmiri": "ks-IN",
+    "ne": "ne-IN",
+    "nepali": "ne-IN",
+    "ur": "ur-IN",
+    "urdu": "ur-IN",
+    "mai": "mai-IN",
+    "maithili": "mai-IN",
+    "sa": "sa-IN",
+    "sanskrit": "sa-IN",
+    "bho": "bho-IN",
+    "bhojpuri": "bho-IN",
 }
 
 
@@ -1009,6 +1029,20 @@ async def my_agent(ctx: JobContext):
         except Exception as e:
             logger.warning("LANG locale switch failed: %s", e)
 
+    @ctx.room.on("data_received")
+    def _on_data_received(dp) -> None:
+        try:
+            payload = json.loads(dp.data.decode("utf-8"))
+            if payload.get("type") == "language_change" and payload.get("language"):
+                target_lang = payload["language"]
+                logger.info(
+                    "Real-time UI language switch received over LiveKit data channel: %s",
+                    target_lang,
+                )
+                _set_locale(target_lang)
+        except Exception as e:
+            logger.debug("Non-language data channel packet received: %s", e)
+
     @session.on("user_input_transcribed")
     def _on_transcribed(ev) -> None:
         if not ev.is_final:
@@ -1016,17 +1050,29 @@ async def my_agent(ctx: JobContext):
         if ev.language:
             _set_locale(ev.language)
         text = ev.transcript or ""
-        # Clinical Negation Guard: Do not latch false positive emergency on negative phrases
+        # Deterministic Clinical Multi-Match Scanner:
+        # Check all matches in the utterance. If ANY un-negated emergency match exists, latch emergency immediately!
         if not assistant.emergency_flag:
-            m = EMERGENCY_RE.search(text)
-            if m and not is_negated_phrase(text, m.span()):
-                assistant.emergency_flag = True
-                logger.warning("EMERGENCY detected in transcript: %r", text[:120])
+            for m in EMERGENCY_RE.finditer(text):
+                if not is_negated_phrase(text, m.span()):
+                    assistant.emergency_flag = True
+                    logger.warning(
+                        "EMERGENCY detected in transcript: %r (match: %r)",
+                        text[:120],
+                        m.group(0),
+                    )
+                    break
+
         if not assistant.redflag_flag:
-            m_rf = RED_FLAG_RE.search(text)
-            if m_rf and not is_negated_phrase(text, m_rf.span()):
-                assistant.redflag_flag = True
-                logger.info("RED FLAG detected, escalation unlocked: %r", text[:120])
+            for m_rf in RED_FLAG_RE.finditer(text):
+                if not is_negated_phrase(text, m_rf.span()):
+                    assistant.redflag_flag = True
+                    logger.info(
+                        "RED FLAG detected, escalation unlocked: %r (match: %r)",
+                        text[:120],
+                        m_rf.group(0),
+                    )
+                    break
 
         # Bharat Vernacular Health Lexicon (BVHL) scanning
         try:
@@ -1207,8 +1253,9 @@ async def my_agent(ctx: JobContext):
             ctx.shutdown(reason="outbound call not answered")
             return
 
-    # Determine caller ID from connected room participant (must be after ctx.connect())
+    # Determine caller ID and initial language preference from connected participant metadata
     caller_id = ""
+    requested_caller_lang = ""
     for p in ctx.room.remote_participants.values():
         if p.identity:
             caller_id = p.identity
@@ -1216,7 +1263,8 @@ async def my_agent(ctx: JobContext):
                 try:
                     p_meta = json.loads(p.metadata)
                     if p_meta.get("language"):
-                        _set_locale(p_meta["language"])
+                        requested_caller_lang = p_meta["language"]
+                        _set_locale(requested_caller_lang)
                 except Exception:
                     pass
             break
@@ -1263,8 +1311,9 @@ async def my_agent(ctx: JobContext):
     else:
         greeting = GREETING
 
-    # Match the voice locale to the greeting we are about to speak.
-    _set_locale("hi" if re.search(r"[ऀ-ॿ]", greeting) else "en")
+    # Match the voice locale to the greeting only if no explicit caller language was requested
+    if not requested_caller_lang:
+        _set_locale("hi" if re.search(r"[ऀ-ॿ]", greeting) else "en")
 
     # Greet only after the caller is actually subscribed, so the opening line
     # isn't played to an empty room.
