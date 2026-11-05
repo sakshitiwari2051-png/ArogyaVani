@@ -5,7 +5,7 @@
 > **Prize Pool:** 100 Paid Internships (up to ₹1,00,000/mo) + ₹50,000 Category Prizes  
 > **Mandatory Hashtags:** `#GnaniAI` `#GreatIndianAIInternshipChallenge`  
 > **Submission Portal:** [https://www.gnani.ai/internship](https://www.gnani.ai/internship)  
-> **Project Repository:** [ArogyaVani GitHub](https://github.com/Niss54/arogya)  
+> **Project Repository:** [ArogyaVani GitHub](https://github.com/Niss54/ArogyaVani)  
 
 ---
 
@@ -67,13 +67,13 @@ Problem  Setting  Triage (Gnani)  Safety Latch       Generic Savings    Handoff 
 - **On-Screen:** Auto-populated SOAP Note (Subjective, Objective, Assessment, Plan).
 
 #### Scene 6: Architecture & Closing (1:20 – 1:30)
-- **Visual:** Architecture slide showing the full Gnani stack + GitHub badge (77/77 tests passing).
+- **Visual:** Architecture slide showing the full Gnani stack + GitHub badge (122/122 tests passing).
 - **Voiceover:**
   > *"Built for Bharat. Sovereign, resilient, and open-source. ArogyaVani on Gnani AI."*
 - **Ending Graphic:**
   - ArogyaVani Logo + Gnani.ai Logo
   - *"Created for Great Indian AI Internship Challenge 2026"*
-  - GitHub: `github.com/Niss54/arogya`
+  - GitHub: `github.com/Niss54/ArogyaVani`
 
 ---
 
@@ -96,11 +96,11 @@ ArogyaVani is a sovereign, voice-first health helpline that answers that call, b
 🛡️ Deterministic Emergency Latch — Instant 108 ambulance dispatch with zero LLM hallucination
 💊 Jan Aushadhi Savings Engine — Up to 85% drug salt equivalency savings
 
-Tested with 77/77 automated tests passing, resilient multi-tier fallback, and sub-300ms voice response times.
+Tested with 122/122 automated tests passing, resilient multi-tier fallback, and sub-300ms voice response times.
 
 Watch our 90-second demo below to see live Hindi triage, emergency escalation, and generic medicine lookup in action!
 
-GitHub Repo: https://github.com/Niss54/arogya
+GitHub Repo: https://github.com/Niss54/ArogyaVani
 
 Huge thanks to Ganesh Gopalan, Ananth Nagaraj, and the entire Gnani.ai team for empowering Indian engineers with sovereign AI infrastructure! 🇮🇳
 
@@ -133,9 +133,9 @@ Indian families spend ₹1.6 Lakh Cr on medicines. Callers ask about expensive b
 5/6 📞 Telephony First:
 Works via browser WebRTC AND real telephone calls via Twilio Elastic SIP Trunking on a basic ₹1,200 feature phone over 2G/PSTN.
 
-6/6 Fully tested with 77/77 unit & live integration tests passing!
+6/6 Fully tested with 122/122 unit & live integration tests passing!
 Check out the code & architecture on GitHub:
-👉 https://github.com/Niss54/arogya
+👉 https://github.com/Niss54/ArogyaVani
 
 #GnaniAI #GreatIndianAIInternshipChallenge
 ```
@@ -154,7 +154,7 @@ Use these structured answers when filling out the form on [https://www.gnani.ai/
 | **How did you integrate Gnani AI APIs?** | Implemented custom LiveKit-compatible plugins for Gnani's full stack: (1) `GnaniSTT` using `gnani-vachana` streaming WebSocket (`wss://api.vachana.ai/stt/v3/stream`) for Hindi/Hinglish recognition; (2) `GnaniTTS` using `GnaniTTSRealtimeClient` (`wss://api.vachana.ai/api/v1/tts`) with chunked `AudioEmitter` playback; and (3) `GnaniLLM` wrapping Evon v3.3 (`https://api.vachana.ai/llm/v1`) with 16 clinical triage tools and resilient multi-tier fallback. |
 | **What problem does your project solve?** | Rural healthcare delivery in India suffers from high illiteracy, linguistic barriers, and severe out-of-pocket medical debt. ArogyaVani allows anyone on a basic 2G feature phone or smartphone to speak naturally in their native language to find open health centres, calculate Jan Aushadhi generic drug savings, and safely access 108 emergency services. |
 | **Key Innovations & Differentiators** | 1. **Zero Hallucination Emergency Latch**: Hard-coded regex bypass for 108 dispatch.<br>2. **Bharat Vernacular Lexicon**: Recognizes rural idioms (e.g., "kaleje mein jalan", "chakkar").<br>3. **Telephony SIP Integration**: Inbound & outbound calling via Twilio Elastic SIP Trunk.<br>4. **Multi-Agent Room Handoff**: Transfers patient context to specialized clinical agents with automated SOAP note generation.<br>5. **100% Test Coverage**: 77 automated tests verifying end-to-end functionality. |
-| **GitHub Repository Link** | `https://github.com/Niss54/arogya` |
+| **GitHub Repository Link** | `https://github.com/Niss54/ArogyaVani` |
 | **Demo Video Link** | `[Your LinkedIn or X Post URL]` |
 
 ---
