@@ -45,6 +45,7 @@ import {
 } from '@livekit/components-react';
 import { AgentAudioVisualizerWave } from '@/components/agents-ui/agent-audio-visualizer-wave';
 import { CallAnalyticsDashboard } from '@/components/app/call-analytics-dashboard';
+import { SettingsView } from '@/components/app/settings-view';
 import { useInputControls } from '@/hooks/agents-ui/use-agent-control-bar';
 import { cn } from '@/lib/shadcn/utils';
 
@@ -1114,6 +1115,8 @@ export function SamarDashboard() {
         <main className="flex flex-1 gap-3 overflow-hidden">
           {activeNav === 'dashboard' ? (
             <CallAnalyticsDashboard />
+          ) : activeNav === 'settings' ? (
+            <SettingsView onForgetMemory={handleForgetMe} />
           ) : (
             <>
               {/* ── ALL-IN-ONE MAIN BOX (Combined Stage: Sine Wave + Fading Chat Stream + Controls) ── */}
