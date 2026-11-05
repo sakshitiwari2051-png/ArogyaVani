@@ -142,12 +142,12 @@ async def handle_incoming(request: web.Request) -> web.Response:
 
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech" action="{action_url}" method="POST" language="en-IN" speechTimeout="auto" timeout="6">
-        <Say voice="Polly.Kajal" language="en-IN">Welcome to ArogyaVani Health Helpline.</Say>
+    <Gather input="speech" action="{action_url}" method="POST" language="en-IN" speechTimeout="auto" timeout="10">
+        <Say voice="Polly.Kajal" language="en-IN">Hello! Welcome to ArogyaVani sovereign health helpline.</Say>
         <Say voice="Polly.Aditi" language="hi-IN">नमस्ते! मैं आरोग्यवाणी स्वास्थ्य सेवा हूँ।</Say>
-        <Say voice="Polly.Kajal" language="en-IN">How can I help you today? You can speak in English or Hindi.</Say>
+        <Say voice="Polly.Kajal" language="en-IN">Please tell me, how are you feeling today? You can speak in English or Hindi.</Say>
     </Gather>
-    <Say voice="Polly.Kajal" language="en-IN">We did not hear any response. Please call back anytime for health assistance. Take care!</Say>
+    <Say voice="Polly.Kajal" language="en-IN">I did not hear any voice. Please call back whenever you need medical assistance. Take care!</Say>
 </Response>"""
     return web.Response(text=twiml, content_type="application/xml", charset="utf-8")
 
@@ -211,7 +211,7 @@ async def handle_reply(request: web.Request) -> web.Response:
 
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Gather input="speech" action="{action_url}" method="POST" language="{gather_lang}" speechTimeout="auto" timeout="6">
+    <Gather input="speech" action="{action_url}" method="POST" language="{gather_lang}" speechTimeout="auto" timeout="10">
         <Say voice="{voice}" language="{voice_lang}">{clean_reply} {clean_followup}</Say>
     </Gather>
     <Say voice="{voice}" language="{voice_lang}">{clean_goodbye}</Say>
