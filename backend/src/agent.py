@@ -1155,7 +1155,10 @@ async def my_agent(ctx: JobContext):
 
     # Greet only after the caller is actually subscribed, so the opening line
     # isn't played to an empty room.
-    await session.say(greeting, allow_interruptions=True)
+    try:
+        await session.say(greeting, allow_interruptions=True)
+    except Exception as e:
+        logger.warning("Initial greeting interrupted or session closed: %s", e)
 
 
 if __name__ == "__main__":
