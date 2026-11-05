@@ -87,7 +87,7 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4 text-amber-500" />
-              <h3 className="text-sm font-black tracking-wide uppercase text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-black tracking-wide text-slate-900 uppercase dark:text-slate-100">
                 Voice AI Pipeline Engines
               </h3>
             </div>
@@ -233,7 +233,7 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Globe2 className="size-4 text-blue-500" />
-              <h3 className="text-sm font-black tracking-wide uppercase text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-black tracking-wide text-slate-900 uppercase dark:text-slate-100">
                 Language & Bharat Lexicon
               </h3>
             </div>
@@ -289,7 +289,7 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
 
             <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-900/40">
               <div className="flex items-start gap-2.5">
-                <Radio className="mt-0.5 size-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                <Radio className="mt-0.5 size-4 shrink-0 text-teal-600 dark:text-teal-400" />
                 <div>
                   <span className="font-bold text-slate-900 dark:text-slate-100">
                     Bharat Medical Lexicon
@@ -328,7 +328,7 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-rose-500" />
-              <h3 className="text-sm font-black tracking-wide uppercase text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-black tracking-wide text-slate-900 uppercase dark:text-slate-100">
                 Safety & Emergency Guardrails
               </h3>
             </div>
@@ -384,7 +384,7 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Lock className="size-4 text-emerald-500" />
-              <h3 className="text-sm font-black tracking-wide uppercase text-slate-900 dark:text-slate-100">
+              <h3 className="text-sm font-black tracking-wide text-slate-900 uppercase dark:text-slate-100">
                 Privacy, ABHA Memory & Admin
               </h3>
             </div>
@@ -431,9 +431,7 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
             {/* Forget Me Action */}
             <div className="flex items-center justify-between rounded-xl border border-rose-200/60 bg-rose-50/30 p-3 dark:border-rose-900/40 dark:bg-rose-950/20">
               <div>
-                <span className="font-bold text-rose-900 dark:text-rose-200">
-                  Forget My Memory
-                </span>
+                <span className="font-bold text-rose-900 dark:text-rose-200">Forget My Memory</span>
                 <p className="text-[11px] text-rose-700/80 dark:text-rose-300/70">
                   Permanently delete all stored consultation records and session history.
                 </p>
@@ -469,10 +467,10 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
 
       {/* ── System Connectivity Diagnostics Bar ── */}
       <div className="mt-6 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-        <div className="mb-2 text-[11px] font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+        <div className="mb-2 text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
           Live Backend Services & Diagnostics
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-xs">
+        <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-emerald-500" />
             <span className="font-mono text-slate-700 dark:text-slate-300">LiveKit WebRTC:</span>
@@ -498,4 +496,3 @@ export function SettingsView({ onForgetMemory }: SettingsViewProps) {
     </div>
   );
 }
-

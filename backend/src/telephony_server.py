@@ -10,13 +10,16 @@ Powers real two-way conversational voice calls over Twilio:
 import logging
 import os
 import re
+
+import httpx
 from aiohttp import web
 from dotenv import load_dotenv
-import httpx
 
 load_dotenv(".env.local")
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 logger = logging.getLogger("telephony")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -45,7 +48,9 @@ def detect_language(text: str) -> str:
     text_lower = text.lower()
 
     # Explicit language switch requests
-    if re.search(r"\b(english|speak in english|in english|talk in english)\b", text_lower):
+    if re.search(
+        r"\b(english|speak in english|in english|talk in english)\b", text_lower
+    ):
         return "en"
     if re.search(r"\b(hindi|hindi me|hindi mein|speak in hindi)\b", text_lower):
         return "hi"
@@ -56,17 +61,80 @@ def detect_language(text: str) -> str:
 
     # Distinctive Romanized Hindi / Hinglish markers
     hindi_markers = {
-        "namaste", "namaskar", "haan", "nahi", "bukhar", "dard", "pet", "sar", "sir",
-        "dawa", "dawai", "madad", "chahiye", "kya", "kaise", "hoga", "hai", "hain",
-        "hoon", "kripya", "batao", "batayein", "theek", "khoon", "saans", "ulti", "chakkar",
-        "mujhe", "mera", "meri", "mere", "aap", "sahab", "ji", "bhai", "kuch", "bolo"
+        "namaste",
+        "namaskar",
+        "haan",
+        "nahi",
+        "bukhar",
+        "dard",
+        "pet",
+        "sar",
+        "sir",
+        "dawa",
+        "dawai",
+        "madad",
+        "chahiye",
+        "kya",
+        "kaise",
+        "hoga",
+        "hai",
+        "hain",
+        "hoon",
+        "kripya",
+        "batao",
+        "batayein",
+        "theek",
+        "khoon",
+        "saans",
+        "ulti",
+        "chakkar",
+        "mujhe",
+        "mera",
+        "meri",
+        "mere",
+        "aap",
+        "sahab",
+        "ji",
+        "bhai",
+        "kuch",
+        "bolo",
     }
 
     english_markers = {
-        "i", "have", "the", "is", "are", "am", "my", "where", "what", "how", "please",
-        "can", "you", "tell", "me", "persistent", "headache", "fever", "pain", "hospital",
-        "centre", "help", "need", "symptoms", "medicine", "tablets", "cough", "cold",
-        "hello", "hi", "good", "morning", "evening", "doctor", "fever"
+        "i",
+        "have",
+        "the",
+        "is",
+        "are",
+        "am",
+        "my",
+        "where",
+        "what",
+        "how",
+        "please",
+        "can",
+        "you",
+        "tell",
+        "me",
+        "persistent",
+        "headache",
+        "fever",
+        "pain",
+        "hospital",
+        "centre",
+        "help",
+        "need",
+        "symptoms",
+        "medicine",
+        "tablets",
+        "cough",
+        "cold",
+        "hello",
+        "hi",
+        "good",
+        "morning",
+        "evening",
+        "doctor",
     }
 
     words = set(re.findall(r"\b\w+\b", text_lower))
@@ -204,10 +272,16 @@ async def handle_reply(request: web.Request) -> web.Response:
         voice_lang = "en-IN"
         gather_lang = "en-IN"
         followup = "Do you have any other questions?"
-        goodbye = "Thank you for calling ArogyaVani health helpline. Stay safe and healthy."
+        goodbye = (
+            "Thank you for calling ArogyaVani health helpline. Stay safe and healthy."
+        )
 
-    clean_followup = followup.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    clean_goodbye = goodbye.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    clean_followup = (
+        followup.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    )
+    clean_goodbye = (
+        goodbye.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    )
 
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -221,8 +295,10 @@ async def handle_reply(request: web.Request) -> web.Response:
 
 def create_app() -> web.Application:
     app = web.Application()
+
     async def _health(r):
         return web.json_response({"status": "ok", "agent": "ArogyaVani"})
+
     app.router.add_get("/health", _health)
     app.router.add_get("/voice/incoming", handle_incoming)
     app.router.add_post("/voice/incoming", handle_incoming)

@@ -38,6 +38,14 @@ import gnani_tts
 import rag
 from outbound import place_call as _place_call
 
+try:
+    from bhashini_adapter import BhashiniClient
+
+    _bhashini_client = BhashiniClient()
+except Exception as _bhash_err:
+    _bhashini_client = None
+
+
 logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
@@ -119,6 +127,21 @@ FUNCTION_TAG_REGEX = re.compile(
 )
 RAW_TAG_REGEX = re.compile(r"</?function[^>]*>", re.IGNORECASE)
 
+
+def is_negated_phrase(text: str, matched_span: tuple[int, int]) -> bool:
+    """Check if the matched clinical symptom keyword is preceded or followed by negation markers."""
+    start, end = matched_span
+    pre = text[max(0, start - 35) : start].lower()
+    post = text[end : min(len(text), end + 35)].lower()
+
+    # Preceding negation: "no", "not", "without", "don't have", "koi"
+    if re.search(r"\b(no|not|without|denies|neither|don'?t have|koi)\s*$", pre):
+        return True
+
+    # Succeeding negation: "nahi hai", "nahin", "na ho", "nahi", "not present"
+    return bool(re.search(r"^\s*(nahi|nahin|na|not|negative)\b", post))
+
+
 # A red flag must not depend on the LLM noticing it. This scan runs on every final
 # transcript and latches a flag that blocks end_call until 108 has been given and
 # an escalation raised. Covers English, Roman Hinglish and Devanagari.
@@ -152,6 +175,33 @@ RED_FLAG_RE = re.compile(
     r"डॉक्टर से बात|कौन सी दवा|इलाज बंद",
     re.IGNORECASE,
 )
+
+INDIC_LOCALES: dict[str, str] = {
+    "hi": "hi-IN",
+    "hindi": "hi-IN",
+    "en": "en-IN",
+    "english": "en-IN",
+    "kn": "kn-IN",
+    "kannada": "kn-IN",
+    "ta": "ta-IN",
+    "tamil": "ta-IN",
+    "te": "te-IN",
+    "telugu": "te-IN",
+    "mr": "mr-IN",
+    "marathi": "mr-IN",
+    "bn": "bn-IN",
+    "bengali": "bn-IN",
+    "gu": "gu-IN",
+    "gujarati": "gu-IN",
+    "ml": "ml-IN",
+    "malayalam": "ml-IN",
+    "pa": "pa-IN",
+    "punjabi": "pa-IN",
+    "or": "or-IN",
+    "odia": "or-IN",
+    "as": "as-IN",
+    "assamese": "as-IN",
+}
 
 
 class CleanSentenceTokenizer(tokenize.basic.SentenceTokenizer):
@@ -756,6 +806,37 @@ class Assistant(Agent):
             specialist_type="clinic",
         )
 
+    @function_tool
+    async def translate_health_message(
+        self,
+        context: RunContext,
+        text: str,
+        target_language: str,
+        source_language: str = "en",
+    ) -> str:
+        """Translate clinical instructions, health advisories, or medicine guidelines into any of India's 22 scheduled languages using Bhashini (Digital India / MeitY) IndicTrans2.
+
+        Use this tool when a caller requests information in Kannada, Tamil, Telugu, Marathi, Bengali, Gujarati, Odia, Malayalam, Punjabi, Assamese, etc., or when presenting localized prescription guidance.
+
+        Args:
+            text: The clinical or health advisory text to translate.
+            target_language: Target language code (e.g. "kn", "ta", "te", "hi", "mr", "bn", "gu", "ml", "pa", "or", "as").
+            source_language: Source language code (default "en" or "hi").
+        """
+        if not _bhashini_client:
+            return f"Bhashini translation service not initialized. Text: {text}"
+        src = source_language.lower().split("-")[0]
+        tgt = target_language.lower().split("-")[0]
+        logger.info("translate_health_message via Bhashini: %s -> %s", src, tgt)
+        try:
+            translated = await _bhashini_client.translate_text(
+                text, source_lang=src, target_lang=tgt
+            )
+            return translated or text
+        except Exception as e:
+            logger.warning("Bhashini translation exception: %s", e)
+            return text
+
 
 server = AgentServer()
 
@@ -909,7 +990,16 @@ async def my_agent(ctx: JobContext):
     # hi-IN voice — that is the bad accent. Locale fixes accent; the prompt fixes
     # word choice. Same handler latches red flags so end_call can refuse.
     def _set_locale(code: str) -> None:
-        locale = "en-IN" if code.lower().startswith("en") else "hi-IN"
+        norm = code.lower().strip()
+        locale = INDIC_LOCALES.get(norm)
+        if not locale:
+            for k, loc in INDIC_LOCALES.items():
+                if norm.startswith(k):
+                    locale = loc
+                    break
+        if not locale:
+            locale = "hi-IN" if re.search(r"[ऀ-ॿ]", code) else "en-IN"
+
         if locale == assistant.tts_locale:
             return
         assistant.tts_locale = locale
@@ -926,12 +1016,17 @@ async def my_agent(ctx: JobContext):
         if ev.language:
             _set_locale(ev.language)
         text = ev.transcript or ""
-        if not assistant.emergency_flag and EMERGENCY_RE.search(text):
-            assistant.emergency_flag = True
-            logger.warning("EMERGENCY detected in transcript: %r", text[:120])
-        if not assistant.redflag_flag and RED_FLAG_RE.search(text):
-            assistant.redflag_flag = True
-            logger.info("RED FLAG detected, escalation unlocked: %r", text[:120])
+        # Clinical Negation Guard: Do not latch false positive emergency on negative phrases
+        if not assistant.emergency_flag:
+            m = EMERGENCY_RE.search(text)
+            if m and not is_negated_phrase(text, m.span()):
+                assistant.emergency_flag = True
+                logger.warning("EMERGENCY detected in transcript: %r", text[:120])
+        if not assistant.redflag_flag:
+            m_rf = RED_FLAG_RE.search(text)
+            if m_rf and not is_negated_phrase(text, m_rf.span()):
+                assistant.redflag_flag = True
+                logger.info("RED FLAG detected, escalation unlocked: %r", text[:120])
 
         # Bharat Vernacular Health Lexicon (BVHL) scanning
         try:
@@ -1043,17 +1138,28 @@ async def my_agent(ctx: JobContext):
             try:
                 import clinical_notes
 
+                clinical_summary = (
+                    assistant.caller_facts.get("last_triage_outcome")
+                    or ", ".join(assistant.caller_facts.get("ongoing_conditions", []))
+                    or f"Voice triage completed: {reason.replace('_', ' ')}"
+                )
                 _soap_record = clinical_notes.generate_soap_note(
                     caller_name=assistant.caller_facts.get("name", ""),
                     user_id=assistant.caller_user_id or f"call-{call_id}",
                     symptoms_text=assistant.caller_facts.get(
-                        "last_triage_outcome", "Voice triage interaction"
+                        "last_triage_outcome", "Voice health consultation"
                     ),
-                    triage_outcome=reason,
+                    triage_outcome=clinical_summary,
                     urgency="emergency" if assistant.emergency_flag else "medium",
                 )
+                await db.save_clinical_note(
+                    call_id=call_id,
+                    caller_user_id=assistant.caller_user_id or f"call-{call_id}",
+                    caller_name=assistant.caller_facts.get("name", ""),
+                    soap_record=_soap_record,
+                )
                 logger.info(
-                    "ABDM/FHIR Clinical SOAP Note generated for call %d", call_id
+                    "ABDM/FHIR Clinical Note persisted to database for call %d", call_id
                 )
             except Exception as _ce:
                 logger.debug("SOAP note compile skipped: %s", _ce)
@@ -1106,6 +1212,13 @@ async def my_agent(ctx: JobContext):
     for p in ctx.room.remote_participants.values():
         if p.identity:
             caller_id = p.identity
+            if p.metadata:
+                try:
+                    p_meta = json.loads(p.metadata)
+                    if p_meta.get("language"):
+                        _set_locale(p_meta["language"])
+                except Exception:
+                    pass
             break
 
     if not caller_id:

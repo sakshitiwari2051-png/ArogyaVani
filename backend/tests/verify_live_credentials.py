@@ -71,7 +71,9 @@ async def test_gemini():
             if resp.status_code == 200:
                 data = resp.json()
                 reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                results["Gemini"] = f"PASSED (Model: gemini-flash-lite-latest) -> Response: {reply}"
+                results["Gemini"] = (
+                    f"PASSED (Model: gemini-flash-lite-latest) -> Response: {reply}"
+                )
             else:
                 results["Gemini"] = f"FAILED (HTTP {resp.status_code}): {resp.text}"
     except Exception as e:
@@ -90,15 +92,19 @@ async def test_groq():
         headers = {"Authorization": f"Bearer {api_key}"}
         payload = {
             "model": "qwen/qwen3.8-27b",
-            "messages": [{"role": "user", "content": "Say 'ArogyaVani Groq OK' in 3 words."}],
-            "max_tokens": 15
+            "messages": [
+                {"role": "user", "content": "Say 'ArogyaVani Groq OK' in 3 words."}
+            ],
+            "max_tokens": 15,
         }
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
                 reply = data["choices"][0]["message"]["content"].strip()
-                results["Groq"] = f"PASSED (Model: qwen/qwen3.8-27b) -> Response: {reply}"
+                results["Groq"] = (
+                    f"PASSED (Model: qwen/qwen3.8-27b) -> Response: {reply}"
+                )
             else:
                 results["Groq"] = f"FAILED (HTTP {resp.status_code}): {resp.text}"
     except Exception as e:
@@ -149,9 +155,7 @@ async def test_deepgram():
                     f"PASSED: Deepgram Nova-3 authenticated. Active project(s): {len(projects)}"
                 )
             else:
-                results["Deepgram"] = (
-                    f"FAILED (HTTP {resp.status_code}): {resp.text}"
-                )
+                results["Deepgram"] = f"FAILED (HTTP {resp.status_code}): {resp.text}"
     except Exception as e:
         results["Deepgram"] = f"FAILED: {e}"
 
@@ -176,9 +180,7 @@ async def test_gnani():
 
         # 2. Test TTS Realtime synthesis
         tts_client = GnaniTTSRealtimeClient(api_key=api_key)
-        cfg = AudioConfig(
-            sample_rate=24000, encoding="linear_pcm", container="raw"
-        )
+        cfg = AudioConfig(sample_rate=24000, encoding="linear_pcm", container="raw")
         total_bytes = 0
         async for chunk in tts_client.synthesize(
             "नमस्ते, आरोग्यवाणी में आपका स्वागत है।",

@@ -413,7 +413,13 @@ export function SamarDashboard() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<string>('hi');
+  const [selectedLang, setSelectedLang] = useState<string>(() => {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/arogyavani_lang=([^;]+)/);
+      if (match) return match[1];
+    }
+    return 'hi';
+  });
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [livePing, setLivePing] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -1101,6 +1107,9 @@ export function SamarDashboard() {
                       key={l.value}
                       onClick={() => {
                         setSelectedLang(l.value);
+                        if (typeof document !== 'undefined') {
+                          document.cookie = `arogyavani_lang=${l.value}; Path=/; SameSite=Lax`;
+                        }
                         setIsLangOpen(false);
                       }}
                       className={cn(

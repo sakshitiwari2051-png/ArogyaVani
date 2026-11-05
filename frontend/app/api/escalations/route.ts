@@ -7,10 +7,9 @@ export const revalidate = 0;
 
 const STATUSES = ['open', 'acknowledged', 'resolved'];
 
-// Same file the Python agent writes through aiosqlite. WAL is enabled by db.init_db(),
-// so a concurrent agent write no longer means SQLITE_BUSY here.
 function openDb() {
-  const dbPath = path.resolve(process.cwd(), '../backend/data/helpline.db');
+  const dbPath =
+    process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), '../backend/data/helpline.db');
   if (!fs.existsSync(dbPath)) return null;
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA busy_timeout = 3000');
@@ -19,7 +18,42 @@ function openDb() {
 
 const ref = (id: number) => `ESC-${String(id).padStart(4, '0')}`;
 
+function verifyAdminAuth(req: Request): boolean {
+  const expected = process.env.ADMIN_TOKEN || process.env.LIVEKIT_API_SECRET;
+  if (expected) {
+    const adminHeader = req.headers.get('x-admin-token');
+    if (adminHeader && adminHeader === expected) return true;
+
+    const authHeader = req.headers.get('authorization') || '';
+    if (authHeader.startsWith('Bearer ') && authHeader.slice(7) === expected) return true;
+
+    return false;
+  }
+
+  // Development localhost fallback if no ADMIN_TOKEN is set
+  const host = req.headers.get('host') || '';
+  if (
+    process.env.NODE_ENV === 'development' &&
+    (host.includes('localhost') || host.includes('127.0.0.1'))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function GET(req: Request) {
+  // Enforce server-side authentication for patient escalation records
+  if (!verifyAdminAuth(req)) {
+    return NextResponse.json(
+      {
+        error:
+          'unauthorized — valid admin token required via x-admin-token or Authorization Bearer',
+      },
+      { status: 401, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
   try {
     const status = new URL(req.url).searchParams.get('status') ?? 'open';
     const db = openDb();
@@ -27,13 +61,28 @@ export async function GET(req: Request) {
       return NextResponse.json({ escalations: [] }, { headers: { 'Cache-Control': 'no-store' } });
 
     try {
-      const rows = status
-        ? db
-            .prepare(
-              'SELECT * FROM escalations WHERE status = ? ORDER BY created_at DESC LIMIT 100'
-            )
-            .all(status)
-        : db.prepare('SELECT * FROM escalations ORDER BY created_at DESC LIMIT 100').all();
+      // Audit log authorized escalation data access
+      console.info(
+        `[AUDIT] Authorized escalation records retrieved at ${new Date().toISOString()} (filter: ${status})`
+      );
+
+      // Strictly project only role-relevant clinical fields (never internal credentials or uncontrolled fields)
+      const query = status
+        ? db.prepare(
+            `SELECT id, caller_name, severity, status, created_at, complaint, callback_method, resolution_note, updated_at
+             FROM escalations
+             WHERE status = ?
+             ORDER BY created_at DESC
+             LIMIT 100`
+          )
+        : db.prepare(
+            `SELECT id, caller_name, severity, status, created_at, complaint, callback_method, resolution_note, updated_at
+             FROM escalations
+             ORDER BY created_at DESC
+             LIMIT 100`
+          );
+
+      const rows = status ? query.all(status) : query.all();
       const escalations = rows.map((r) => ({ ...r, ref: ref(Number(r.id)) }));
       return NextResponse.json({ escalations }, { headers: { 'Cache-Control': 'no-store' } });
     } finally {
@@ -41,18 +90,14 @@ export async function GET(req: Request) {
     }
   } catch (error) {
     console.error('Escalations GET error:', error);
-    // Table missing (agent never ran) is not an error worth a 500 on a dashboard.
     return NextResponse.json({ escalations: [] }, { headers: { 'Cache-Control': 'no-store' } });
   }
 }
 
 export async function PATCH(req: Request) {
-  // Fails closed: with ADMIN_TOKEN unset nobody can write, so a forgotten env var
-  // cannot leave status updates open to the internet.
-  const expected = process.env.ADMIN_TOKEN;
-  if (!expected || req.headers.get('x-admin-token') !== expected) {
+  if (!verifyAdminAuth(req)) {
     return NextResponse.json(
-      { error: 'forbidden — set ADMIN_TOKEN and send x-admin-token' },
+      { error: 'forbidden — set ADMIN_TOKEN and send x-admin-token or Authorization Bearer' },
       { status: 403 }
     );
   }
@@ -76,7 +121,16 @@ export async function PATCH(req: Request) {
         )
         .run(status, note, new Date().toISOString(), id);
       if (res.changes === 0) return NextResponse.json({ error: 'not found' }, { status: 404 });
-      const row = db.prepare('SELECT * FROM escalations WHERE id = ?').get(id);
+
+      console.info(
+        `[AUDIT] Escalation ${ref(id)} updated to '${status}' at ${new Date().toISOString()}`
+      );
+
+      const row = db
+        .prepare(
+          'SELECT id, caller_name, severity, status, created_at, complaint, callback_method, resolution_note, updated_at FROM escalations WHERE id = ?'
+        )
+        .get(id);
       return NextResponse.json({ escalation: { ...row, ref: ref(id) } });
     } finally {
       db.close();

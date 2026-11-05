@@ -21,7 +21,8 @@ export interface AppConfig {
 export const APP_CONFIG_DEFAULTS: AppConfig = {
   companyName: 'ArogyaVani Health Helpline',
   pageTitle: 'ArogyaVani — AI Health Access Platform',
-  pageDescription: 'Sovereign Indic Voice AI Health Helpline, powered by Gnani.ai (Prisma STT, Timbre TTS, Evon LLM) & LiveKit',
+  pageDescription:
+    'Sovereign Indic Voice AI Health Helpline, powered by Gnani.ai (Prisma STT, Timbre TTS, Evon LLM) & LiveKit',
 
   // Voice-only on purpose: this models a phone call to a health centre.
   supportsChatInput: true,

@@ -1,6 +1,7 @@
 import pytest
-from telephony_server import detect_language, create_app
 from aiohttp import web
+
+from telephony_server import create_app, detect_language
 
 
 def test_detect_language_hindi():
@@ -24,6 +25,7 @@ async def test_incoming_route():
     await site.start()
 
     import httpx
+
     async with httpx.AsyncClient() as http:
         resp = await http.get("http://127.0.0.1:8089/health")
         assert resp.status_code == 200

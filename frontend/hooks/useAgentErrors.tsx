@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { toast as sonnerToast } from 'sonner';
 import { useAgent, useSessionContext } from '@livekit/components-react';
-import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ToastProps {
@@ -15,7 +15,7 @@ function toastAlert(toast: ToastProps) {
   return sonnerToast.custom(
     (id) => (
       <Alert onClick={() => sonnerToast.dismiss(id)} className="bg-accent w-full md:w-[364px]">
-        <AlertTriangle className="size-4 text-destructive" />
+        <AlertTriangle className="text-destructive size-4" />
         <AlertTitle>{title}</AlertTitle>
         {description && <AlertDescription>{description}</AlertDescription>}
       </Alert>

@@ -41,10 +41,12 @@ export default function AdminPage() {
   useEffect(() => setToken(localStorage.getItem('arogyavani_admin_token') ?? ''), []);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/escalations?status=${status}`, { cache: 'no-store' });
+    const headers: Record<string, string> = {};
+    if (token) headers['x-admin-token'] = token;
+    const res = await fetch(`/api/escalations?status=${status}`, { cache: 'no-store', headers });
     const data = await res.json();
     setRows(data.escalations ?? []);
-  }, [status]);
+  }, [status, token]);
 
   useEffect(() => {
     load();

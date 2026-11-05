@@ -38,7 +38,9 @@ DEFAULT_MODEL = "prisma-v2.5"
 DEFAULT_LANGUAGE = "hi-IN"
 DEFAULT_SAMPLE_RATE = 16000
 
-# Mapping common alias names to valid Gnani language codes
+# Mapping common alias names to valid Gnani language codes.
+# Regional Indian languages map to their standard BCP-47 identifiers.
+# Code-mixed Hinglish / auto-indic defaults to "hi-IN" which supports bilingual Hindi/English recognition.
 LANGUAGE_MAP: dict[str, str] = {
     "hindi": "hi-IN",
     "hi": "hi-IN",
@@ -70,6 +72,18 @@ LANGUAGE_MAP: dict[str, str] = {
     "punjabi": "pa-IN",
     "pa": "pa-IN",
     "pa-in": "pa-IN",
+    "odia": "or-IN",
+    "or": "or-IN",
+    "or-in": "or-IN",
+    "assamese": "as-IN",
+    "as": "as-IN",
+    "as-in": "as-IN",
+    "kashmiri": "ks-IN",
+    "ks": "ks-IN",
+    "nepali": "ne-IN",
+    "ne": "ne-IN",
+    "urdu": "ur-IN",
+    "ur": "ur-IN",
     "multi": "hi-IN",
     "hinglish": "hi-IN",
     "indic-auto": "hi-IN",

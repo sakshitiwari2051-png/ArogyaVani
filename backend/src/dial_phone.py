@@ -6,6 +6,7 @@ Usage:
 
 import os
 import sys
+
 import httpx
 from dotenv import load_dotenv
 
@@ -18,19 +19,25 @@ TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "+17372508034")
 # Live interactive conversational AI telephony webhook URL
 TWIML_URL = os.getenv(
     "INTERACTIVE_VOICE_URL",
-    "https://gtk-palmer-cancer-targets.trycloudflare.com/voice/incoming"
+    "https://gtk-palmer-cancer-targets.trycloudflare.com/voice/incoming",
 )
 
 
 def dial(phone: str, voice_url: str = "") -> dict:
     if not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN):
-        raise ValueError("Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN in .env.local")
+        raise ValueError(
+            "Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN in .env.local"
+        )
 
     url = voice_url or TWIML_URL
-    print(f"[*] Initiating interactive voice call to {phone} from {TWILIO_PHONE_NUMBER}...")
+    print(
+        f"[*] Initiating interactive voice call to {phone} from {TWILIO_PHONE_NUMBER}..."
+    )
     print(f"[*] Voice webhook: {url}")
 
-    with httpx.Client(auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN), timeout=15.0) as client:
+    with httpx.Client(
+        auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN), timeout=15.0
+    ) as client:
         resp = client.post(
             f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Calls.json",
             data={
@@ -44,7 +51,9 @@ def dial(phone: str, voice_url: str = "") -> dict:
             return {"status": "error", "response": resp.json()}
 
         data = resp.json()
-        print(f"[+] Call queued successfully! SID: {data.get('sid')}, Status: {data.get('status')}")
+        print(
+            f"[+] Call queued successfully! SID: {data.get('sid')}, Status: {data.get('status')}"
+        )
         return {"status": "ok", "sid": data.get("sid"), "call": data}
 
 

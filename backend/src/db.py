@@ -103,6 +103,24 @@ async def init_db(db_path: str = "") -> None:
         await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_calls_outcome ON calls(outcome, started_at DESC)"
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS clinical_notes (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                call_id          INTEGER,
+                caller_user_id   TEXT NOT NULL,
+                caller_name      TEXT DEFAULT '',
+                triage_urgency   TEXT DEFAULT 'ROUTINE',
+                chief_complaint  TEXT DEFAULT '',
+                clinical_summary TEXT DEFAULT '',
+                fhir_resource    TEXT NOT NULL,
+                created_at       TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_notes_caller ON clinical_notes(caller_user_id, created_at DESC)"
+        )
         await db.commit()
     logger.info("Database initialized at %s", db_path)
 
@@ -639,4 +657,76 @@ async def list_recent_calls(limit: int = 20, db_path: str = "") -> list[dict[str
         return [dict(r) for r in rows]
     except Exception as e:
         logger.warning("list_recent_calls failed: %s", e)
+        return []
+
+
+async def save_clinical_note(
+    call_id: int,
+    caller_user_id: str,
+    caller_name: str,
+    soap_record: dict[str, Any],
+    db_path: str = "",
+) -> int:
+    """Persist a structured FHIR R4 clinical SOAP note to SQLite."""
+    db_path = _ensure_db_dir(db_path)
+    s = soap_record.get("soap", {})
+    subj = s.get("subjective", {})
+    assess = s.get("assessment", {})
+    obj = s.get("objective", {})
+
+    chief = subj.get("chief_complaint", "")
+    summary = assess.get("clinical_impression", "")
+    urgency = obj.get("triage_urgency_level", "ROUTINE")
+    fhir_json = json.dumps(soap_record)
+
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO clinical_notes (call_id, caller_user_id, caller_name, triage_urgency, chief_complaint, clinical_summary, fhir_resource)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    call_id,
+                    caller_user_id,
+                    caller_name,
+                    urgency,
+                    chief,
+                    summary,
+                    fhir_json,
+                ),
+            )
+            await db.commit()
+            last_id = cursor.lastrowid or 0
+            logger.info(
+                "Persisted FHIR R4 clinical note %d for call %d", last_id, call_id
+            )
+            return last_id
+    except Exception as e:
+        logger.warning("save_clinical_note failed: %s", e)
+        return 0
+
+
+async def get_clinical_notes(
+    caller_user_id: str = "", limit: int = 50, db_path: str = ""
+) -> list[dict[str, Any]]:
+    """Retrieve clinical notes for clinician dashboard."""
+    db_path = _ensure_db_dir(db_path)
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            db.row_factory = aiosqlite.Row
+            if caller_user_id:
+                cursor = await db.execute(
+                    "SELECT * FROM clinical_notes WHERE caller_user_id = ? ORDER BY created_at DESC LIMIT ?",
+                    (caller_user_id, limit),
+                )
+            else:
+                cursor = await db.execute(
+                    "SELECT * FROM clinical_notes ORDER BY created_at DESC LIMIT ?",
+                    (limit,),
+                )
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+    except Exception as e:
+        logger.warning("get_clinical_notes failed: %s", e)
         return []

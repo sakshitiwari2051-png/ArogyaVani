@@ -21,4 +21,5 @@ node_modules/
 out/
 build/
 dist/
+*.exe
  start

@@ -6,7 +6,8 @@ import { DatabaseSync } from 'node:sqlite';
 export const revalidate = 0;
 
 function openDb() {
-  const dbPath = path.resolve(process.cwd(), '../backend/data/helpline.db');
+  const dbPath =
+    process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), '../backend/data/helpline.db');
   if (!fs.existsSync(dbPath)) return null;
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA busy_timeout = 3000');

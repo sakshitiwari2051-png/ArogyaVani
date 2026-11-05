@@ -199,27 +199,22 @@ async def _fetch_live_osm_facilities(
                 {
                     "id": f"osm_live_{idx}_{item.get('place_id', '')}",
                     "name": clean_name,
-                    "facility_type": "Public/Community Facility",
+                    "facility_type": "Community / Private Healthcare Listing",
                     "district": query_location.title(),
                     "state": "India",
                     "pincode": pin_match.group(0) if pin_match else "Local",
                     "address": display_name,
                     "lat": float(item.get("lat", 0.0)),
                     "lon": float(item.get("lon", 0.0)),
-                    "opd_timings": "8:00 AM - 2:00 PM (OPD), 24x7 Emergency",
-                    "emergency_24x7": True,
-                    "contact_number": "Emergency: 108 / 112",
-                    "ambulance_available": True,
-                    "available_doctors": [
-                        "Duty Medical Officer",
-                        "Staff Nurse on Call",
-                    ],
-                    "free_services": [
-                        "Emergency First Aid",
-                        "Essential Medicines",
-                        "Referral Care",
-                    ],
-                    "verified_timestamp": "March 2025 (Live OSM API)",
+                    "opd_timings": "Timings not verified — please contact facility directly",
+                    "emergency_24x7": False,
+                    "contact_number": "National Emergency: 108 / 112",
+                    "ambulance_available": False,
+                    "available_doctors": [],
+                    "free_services": [],
+                    "verified": False,
+                    "verification_note": "Unverified OpenStreetMap map listing. Emergency services and OPD hours must be verified locally before traveling.",
+                    "verified_timestamp": "Unverified Live Map Listing",
                 }
             )
         return results

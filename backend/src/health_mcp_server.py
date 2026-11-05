@@ -23,18 +23,87 @@ logger = logging.getLogger("health_mcp")
 mcp = FastMCP("arogyavani-public-health")
 
 
+# Verified Indian Essential Medicines & PMBJP Generic Formulations Registry
+INDIAN_GENERIC_CATALOGUE: dict[str, dict[str, str]] = {
+    "dolo 650": {
+        "generic": "Paracetamol (650mg)",
+        "use": "Antipyretic & Analgesic (Fever and Pain relief)",
+    },
+    "dolo": {
+        "generic": "Paracetamol (650mg)",
+        "use": "Antipyretic & Analgesic (Fever and Pain relief)",
+    },
+    "calpol": {"generic": "Paracetamol (500mg / 650mg)", "use": "Fever & Pain relief"},
+    "crocin": {"generic": "Paracetamol (500mg / 650mg)", "use": "Fever & Pain relief"},
+    "paracetamol": {"generic": "Paracetamol (IP)", "use": "Fever & Pain relief"},
+    "pan d": {
+        "generic": "Pantoprazole (40mg) + Domperidone (10mg)",
+        "use": "Acidity, GERD & Nausea",
+    },
+    "pantocid": {"generic": "Pantoprazole (40mg)", "use": "Acid peptic disorder"},
+    "pan 40": {"generic": "Pantoprazole (40mg)", "use": "Acid peptic disorder"},
+    "glycomet": {
+        "generic": "Metformin Hydrochloride (500mg)",
+        "use": "Type 2 Diabetes mellitus",
+    },
+    "metformin": {
+        "generic": "Metformin Hydrochloride",
+        "use": "Type 2 Diabetes mellitus",
+    },
+    "telma": {
+        "generic": "Telmisartan (40mg)",
+        "use": "Hypertension (High Blood Pressure)",
+    },
+    "telmisartan": {
+        "generic": "Telmisartan",
+        "use": "Hypertension (High Blood Pressure)",
+    },
+    "cetzine": {
+        "generic": "Cetirizine Hydrochloride (10mg)",
+        "use": "Allergic Rhinitis & Itching",
+    },
+    "cetirizine": {
+        "generic": "Cetirizine Hydrochloride",
+        "use": "Allergies & Cold symptoms",
+    },
+    "azithral": {
+        "generic": "Azithromycin (500mg)",
+        "use": "Bacterial respiratory infections",
+    },
+    "augmentin": {
+        "generic": "Amoxicillin (500mg) + Clavulanic Acid (125mg)",
+        "use": "Bacterial infection",
+    },
+    "allegra": {
+        "generic": "Fexofenadine Hydrochloride (120mg)",
+        "use": "Antihistamine / Allergies",
+    },
+}
+
+
 def _clean_query(text: str) -> str:
     return re.sub(r"[^\w\s]", " ", (text or "").lower()).strip()
+
+
+def _match_indian_generic(clean_q: str) -> dict[str, str] | None:
+    """Check if query matches verified Indian pharmaceutical brands."""
+    if clean_q in INDIAN_GENERIC_CATALOGUE:
+        return INDIAN_GENERIC_CATALOGUE[clean_q]
+    for key, val in INDIAN_GENERIC_CATALOGUE.items():
+        if key in clean_q or clean_q in key:
+            return val
+    return None
 
 
 async def _fetch_live_drug_data(query: str) -> dict[str, Any] | None:
     """Query live NLM RxNorm open REST API for real-time generic drug ingredients and formulations."""
     clean_q = _clean_query(query)
-    # Extract main drug name keyword (e.g., 'paracetamol', 'metformin', 'dolo', 'telmisartan')
+    # Extract meaningful drug tokens, preserving compound queries where possible
     tokens = [
         t
         for t in clean_q.split()
-        if len(t) > 2 and t not in ("dawa", "medicine", "tablet", "kendra", "sasti")
+        if len(t) > 2
+        and t not in ("dawa", "medicine", "tablet", "kendra", "sasti", "generic")
     ]
     drug_keyword = tokens[0] if tokens else clean_q
 
@@ -120,9 +189,19 @@ async def lookup_generic_medicine(medicine_name: str) -> str:
     if not clean_q:
         return "Kripya kisi dawai ka naam (jaise Paracetamol, Dolo, Metformin, BP dawa) batayein."
 
+    # Priority 1: Check verified Indian Essential Medicines / PMBJP Generic Catalogue
+    indian_match = _match_indian_generic(clean_q)
+    if indian_match:
+        return (
+            f"'{medicine_name}' ka active generic chemical salt '{indian_match['generic']}' hai "
+            f"({indian_match['use']})। "
+            "Pradhan Mantri Bhartiya Janaushadhi Pariyojana (PMBJP) kendron par yeh generic formulation saste dar par uplabdh rehti hai। "
+            "Kripya kisi bhi dawai ko badalne se pehle apne doctor ya Jan Aushadhi pharmacist se exact formulation aur dosage verify zaroor karwayein।"
+        )
+
     current_month = datetime.now().strftime("%B %Y")
 
-    # Query Live RxNorm API
+    # Priority 2: Query Live RxNorm API for international / uncommon molecules
     live_drug = None
     try:
         live_drug = await _fetch_live_drug_data(clean_q)
@@ -132,17 +211,16 @@ async def lookup_generic_medicine(medicine_name: str) -> str:
     if live_drug and live_drug.get("generic_concept"):
         concept = live_drug["generic_concept"]
         return (
-            f"Live pharmaceutical registry ke {current_month} data ke anusaar: "
-            f"'{medicine_name}' ka active generic formulation '{concept}' hai. "
-            f"Jan Aushadhi Kendra (PMBJP) par yeh generic salt branded market se 60% se 80% tak saste damon mein uplabdh rehta hai. "
-            "Aap kisi bhi nazdeeki Jan Aushadhi kendra ya PHC pharmacist se is generic salt ki maang kar sakte hain."
+            f"Pharmaceutical registry ke {current_month} data ke anusaar: "
+            f"'{medicine_name}' ka active generic formulation '{concept}' hai। "
+            "Jan Aushadhi Kendra (PMBJP) par is salt ki generic dawaiyan upalabdh ho sakti hain। "
+            "Kripya nazdeeki PHC ya Jan Aushadhi pharmacist se is generic salt ki uplabdhta aur dose verify karein।"
         )
 
     return (
-        f"Live pharmaceutical registry ke {current_month} record ke anusaar, "
-        f"'{medicine_name}' ka exact generic composition direct map nahi ho paya hai. "
-        "Kripya apne nazdeeki Jan Aushadhi Kendra ya PHC ke medical officer se consult karein, "
-        "jahan sabhi essential medicines 80% saste generic roop mein uplabdh hain."
+        f"'{medicine_name}' ka generic composition direct database mein map nahi hua। "
+        "Kripya apne nazdeeki Primary Health Centre (PHC) ke medical officer ya Jan Aushadhi Kendra pharmacist se "
+        "apna prescription dikhakar generic vikalp ke bare mein salah lein।"
     )
 
 
