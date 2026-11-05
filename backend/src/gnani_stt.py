@@ -292,6 +292,19 @@ class GnaniSTT(stt.STT):
         """Returns provider identifier."""
         return "gnani"
 
+    def update_options(
+        self,
+        *,
+        language: str | None = None,
+        model: str | None = None,
+    ) -> None:
+        """Dynamically update language or model for active and subsequent streaming sessions."""
+        if language is not None:
+            self._language = normalize_language_code(language)
+            logger.info("GnaniSTT language dynamically reconfigured to: %s", self._language)
+        if model is not None:
+            self._model = model
+
     def stream(
         self,
         *,

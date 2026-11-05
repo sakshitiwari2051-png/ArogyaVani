@@ -42,7 +42,7 @@ async def init_db(db_path: str = "") -> None:
                 user_id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 language_preference TEXT DEFAULT 'hi',
-                consent_given INTEGER DEFAULT 1,
+                consent_given INTEGER DEFAULT 0,
                 facts TEXT DEFAULT '{}',
                 last_interaction TEXT DEFAULT CURRENT_TIMESTAMP,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -217,30 +217,31 @@ async def save_caller(
 
 
 async def delete_caller(user_id: str = "", name: str = "", db_path: str = "") -> bool:
-    """Delete caller record (forget me feature) by user_id or name."""
+    """Atomic cascade deletion across callers, escalations, and clinical_notes."""
     clean_id = (user_id or "").strip()
     clean_name = (name or "").strip()
     if not clean_id and not clean_name:
         return False
     db_path = _ensure_db_dir(db_path)
     async with aiosqlite.connect(db_path) as db:
-        if clean_id and clean_name:
-            cursor = await db.execute(
-                "DELETE FROM callers WHERE user_id = ? OR LOWER(name) = LOWER(?) OR name = ?",
-                (clean_id, clean_name, clean_name),
-            )
-        elif clean_id:
-            cursor = await db.execute(
-                "DELETE FROM callers WHERE user_id = ? OR LOWER(name) = LOWER(?) OR name = ?",
-                (clean_id, clean_id, clean_id),
-            )
-        else:
-            cursor = await db.execute(
-                "DELETE FROM callers WHERE LOWER(name) = LOWER(?) OR name = ?",
-                (clean_name, clean_name),
-            )
-        await db.commit()
-        return cursor.rowcount > 0
+        await db.execute("BEGIN TRANSACTION")
+        try:
+            total_deleted = 0
+            if clean_id:
+                c1 = await db.execute("DELETE FROM callers WHERE user_id = ?", (clean_id,))
+                total_deleted += c1.rowcount
+                await db.execute("DELETE FROM escalations WHERE caller_user_id = ?", (clean_id,))
+                await db.execute("DELETE FROM clinical_notes WHERE caller_user_id = ?", (clean_id,))
+            elif clean_name:
+                c1 = await db.execute("DELETE FROM callers WHERE LOWER(name) = LOWER(?)", (clean_name,))
+                total_deleted += c1.rowcount
+                await db.execute("DELETE FROM escalations WHERE LOWER(caller_name) = LOWER(?)", (clean_name,))
+                await db.execute("DELETE FROM clinical_notes WHERE LOWER(caller_name) = LOWER(?)", (clean_name,))
+            await db.commit()
+            return total_deleted > 0
+        except Exception:
+            await db.rollback()
+            raise
 
 
 def format_caller_for_agent(caller: dict[str, Any]) -> str:

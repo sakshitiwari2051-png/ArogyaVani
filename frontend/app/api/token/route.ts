@@ -14,6 +14,34 @@ const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const AGENT_NAME = process.env.AGENT_NAME;
+const SESSION_SECRET =
+  process.env.ADMIN_TOKEN ||
+  process.env.LIVEKIT_API_SECRET ||
+  'arogyavani_session_signing_secret_2026';
+
+function signCallerId(callerId: string): string {
+  const hmac = crypto.createHmac('sha256', SESSION_SECRET).update(callerId).digest('hex');
+  return `${callerId}.${hmac}`;
+}
+
+function verifySignedCallerId(cookieVal: string | null): string | null {
+  if (!cookieVal || typeof cookieVal !== 'string') return null;
+  const parts = cookieVal.split('.');
+  if (parts.length !== 2) return null;
+  const [callerId, sig] = parts;
+  if (!/^caller_[0-9a-fA-F-]{36}$/.test(callerId)) return null;
+  try {
+    const expectedHmac = crypto.createHmac('sha256', SESSION_SECRET).update(callerId).digest('hex');
+    const sigBuf = Buffer.from(sig, 'hex');
+    const expBuf = Buffer.from(expectedHmac, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null;
+    }
+    return callerId;
+  } catch {
+    return null;
+  }
+}
 
 // Rate limiting in-memory map: IP -> timestamp list
 const rateLimitMap = new Map<string, number[]>();
@@ -65,19 +93,14 @@ export async function POST(req: Request) {
 
     const cookieHeader = req.headers.get('cookie') || '';
     const cookieMatch = cookieHeader.match(/arogyavani_caller_id=([^;]+)/);
-    const existingCookieId = cookieMatch ? cookieMatch[1] : null;
+    const existingRawCookie = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
 
     const participantName = body?.participant_name || body?.name || 'Caller';
-    // Security: Caller identity is exclusively server-managed to prevent caller impersonation.
-    // Client cannot supply arbitrary existing caller identities in the request body.
-    const isValidCallerId =
-      existingCookieId &&
-      typeof existingCookieId === 'string' &&
-      /^caller_[0-9a-fA-F-]{36}$/.test(existingCookieId);
-
-    const participantIdentity = isValidCallerId
-      ? existingCookieId
-      : `caller_${crypto.randomUUID()}`;
+    // Security: Caller identity is cryptographically signed with HMAC to prevent caller impersonation.
+    // Client cannot supply arbitrary existing caller identities or forge cookie values.
+    const verifiedCallerId = verifySignedCallerId(existingRawCookie);
+    const participantIdentity = verifiedCallerId || `caller_${crypto.randomUUID()}`;
+    const signedSessionCookie = signCallerId(participantIdentity);
 
     const langCookieMatch = cookieHeader.match(/arogyavani_lang=([^;]+)/);
     const lang =
@@ -107,8 +130,10 @@ export async function POST(req: Request) {
 
     const headers = new Headers({
       'Cache-Control': 'no-store',
-      // Secure, HttpOnly cookie prevents client-side tampering or XSS leakage
-      'Set-Cookie': `arogyavani_caller_id=${participantIdentity}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax`,
+      // Cryptographically signed, HttpOnly cookie prevents client-side tampering, forgery, or XSS leakage
+      'Set-Cookie': `arogyavani_caller_id=${encodeURIComponent(
+        signedSessionCookie
+      )}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax`,
     });
 
     return NextResponse.json(data, { headers });

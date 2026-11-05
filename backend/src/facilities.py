@@ -335,7 +335,7 @@ async def find_health_facilities_async(
 
     fac = top_facilities[0]
     timings = fac.get("opd_timings", "Timings not verified")
-    is_verified = bool(fac.get("verified", not is_live))
+    is_verified = bool(fac.get("verified", False))
     actual_provenance = fac.get(
         "verified_timestamp",
         "March 2025" if not is_live else "Unverified Live Map Listing",
@@ -349,17 +349,11 @@ async def find_health_facilities_async(
             "Kripya aage badhne se pehle sthaniya star par ya 108 par confirm karein."
         )
     else:
-        emergency_text = (
-            "24 ghante emergency suvidha uplabdh hai"
-            if fac.get("emergency_24x7")
-            else "OPD timings mein uplabdh hai"
-        )
-        free_tests = ", ".join(fac.get("free_services", [])[:2])
         spoken_summary = (
-            f"National Health Portal ke {actual_provenance} verified record (reviewed {current_year}) ke anusaar, "
-            f"aapke paas sabse nazdeeki kendra {fac['name']} hai jo {fac['address']} par sthit hai. "
-            f"Yahan OPD {timings} khula rehta hai aur {emergency_text}. "
-            f"{f'Yahan {free_tests} uplabdh hain.' if free_tests else ''}"
+            f"National Health Portal ke {actual_provenance} historical record ({current_year} unverified status) ke anusaar, "
+            f"aapke paas kendra {fac['name']} darj hai jo {fac['address']} par sthit hai. "
+            f"Record ke mutabik OPD {timings} likha hai, lekin ambulance ya doctor ki live uplabdhta unverified hai. "
+            "Kisi bhi aapatkaleen sthiti me turant 108 dial karein."
         )
 
     return {
@@ -399,8 +393,8 @@ def find_health_facilities(
                     "facilities": matched,
                     "primary_facility": fac,
                     "is_live_api": False,
-                    "is_verified": True,
-                    "spoken_summary": f"National Health Portal ke {provenance} record (reviewed {current_year}) ke anusaar '{query_location}' me {fac['name']} uplabdh hai.",
+                    "is_verified": False,
+                    "spoken_summary": f"National Health Portal ke {provenance} historical record ({current_year} status unverified) ke anusaar '{query_location}' me {fac['name']} darj hai. Emergency mein turant 108 par call karein.",
                     "verified_timestamp": provenance,
                     "data_source": f"National Health Portal Registry ({provenance})",
                 }
@@ -422,8 +416,8 @@ def find_health_facilities(
                 "facilities": fallback,
                 "primary_facility": fac,
                 "is_live_api": False,
-                "is_verified": True,
-                "spoken_summary": f"National Health Portal ke {provenance} record (reviewed {current_year}) ke anusaar {fac['name']} uplabdh hai.",
+                "is_verified": False,
+                "spoken_summary": f"National Health Portal ke {provenance} historical record ({current_year} status unverified) ke anusaar {fac['name']} darj hai. Emergency mein 108 par sampark karein.",
                 "verified_timestamp": provenance,
                 "data_source": f"National Health Portal Registry ({provenance})",
             }

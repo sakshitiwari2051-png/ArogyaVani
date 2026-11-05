@@ -151,7 +151,11 @@ export function CallAnalyticsDashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/calls');
+      const adminToken =
+        typeof window !== 'undefined' ? localStorage.getItem('arogyavani_admin_token') || '' : '';
+      const headers: Record<string, string> = {};
+      if (adminToken) headers['x-admin-token'] = adminToken;
+      const res = await fetch('/api/calls', { headers });
       if (res.ok) {
         const json = (await res.json()) as ApiResponse;
         setData(json);

@@ -1,12 +1,21 @@
+# ruff: noqa: E402
 import asyncio
 import json
 import logging
 import os
 import re
 from datetime import datetime, timezone
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# CRITICAL: Load environment variables BEFORE any provider modules or client initializations
+_env_local_path = Path(__file__).resolve().parent.parent / ".env.local"
+if _env_local_path.exists():
+    load_dotenv(_env_local_path)
+load_dotenv()
 
 import httpx
-from dotenv import load_dotenv
 from livekit import api, rtc
 from livekit.agents import (
     Agent,
@@ -48,8 +57,6 @@ except Exception as _bhash_err:
 
 logger = logging.getLogger("agent")
 
-load_dotenv(".env.local")
-
 # Track: Health Access (#VoiceForBharat) — Day 5 Real Tools & Facility Locator
 SYSTEM_PROMPT = """You are ArogyaVani, a female voice assistant for Health Centres in India.
 
@@ -70,7 +77,7 @@ ROLE & OBJECTIVES:
 2. Nearest facility or OPD timings -> `find_nearest_health_facility` (use the district/pincode from memory if known).
 3. PHC care, vaccines, schemes (PM-JAY, JSSK) -> `search_health_guidelines`.
 4. Cheap generic medicines or drug prices (Dolo, BP, Sugar, Acidity, Antibiotics) -> `lookup_generic_medicine`.
-5. New caller shares name/district: ask permission to remember them. Call `save_caller_info` only AFTER they agree, never while still asking.
+5. New caller shares name/health details: first politely acknowledge their details by name (e.g. "Hello Ramesh, thank you for sharing that with me"), then ask for their clear consent to remember these details for future visits. Call `save_caller_info` only AFTER they agree, never while still asking.
 6. Asks to be forgotten -> `forget_caller`, then confirm deletion.
 7. Outbound and they say stop / "abhi busy hoon" / don't call again -> `end_call` at once, no re-pitch. Never during an emergency.
 8. Red flag (chest pain, breathing trouble, ongoing bleeding, fainting, fits, pregnancy complication, sick newborn, poisoning, suicidal talk, or worsening despite advice), or they ask you for a diagnosis, a dose, or permission to skip treatment: ask consent in THEIR language ("May I send a short summary to a human health worker?"), then `create_escalation`. If they refuse, call it with consent_given="false". 108 always comes before this question.
@@ -456,33 +463,26 @@ class Assistant(Agent):
         user_id: str = "",
         name: str = "",
     ) -> str:
-        """Delete all stored records and memory for the caller if they request to be forgotten.
+        """Permanently delete all stored records, consultation notes, and escalations for the current caller.
 
         Args:
-            user_id: Phone number or caller ID to erase. Defaults to current caller ID.
-            name: Caller's name to erase if user_id is not known.
+            user_id: Caller ID to erase (must match current authenticated session).
+            name: Optional caller name for confirmation.
         """
         clean_id = _clean_user_id(user_id)
-        target_id = clean_id or self.caller_user_id
-        target_name = (
-            name.strip() if name and name.lower() not in ("null", "none") else ""
-        )
-        deleted = await db.delete_caller(user_id=target_id, name=target_name)
-        if not deleted and target_name:
-            deleted = await db.delete_caller(name=target_name)
-        if not deleted and self.caller_user_id:
-            deleted = await db.delete_caller(user_id=self.caller_user_id)
+        # Security: Can only erase data belonging to the current caller session
+        target_id = self.caller_user_id or clean_id
+        if not target_id:
+            return "Koi active caller session nahi mila jise delete kiya ja sake."
 
+        # Atomic cascade delete across callers, escalations, and clinical_notes
+        deleted = await db.delete_caller(user_id=target_id)
         if deleted:
             self.caller_user_id = ""
             self.caller_facts.clear()
-            logger.info(
-                "forget_caller: Deleted record for user_id=%s, name=%s",
-                target_id,
-                target_name,
-            )
-            return "All personal records for this caller have been permanently deleted from the database."
-        return "No record was found to delete."
+            logger.info("forget_caller: Atomic cascade deletion completed for caller %s", target_id)
+            return "Aapka sabhi consultation data, clinical notes aur escalations database se permanently deleted kar diye gaye hain (All personal records permanently deleted)."
+        return "Database mein is session ka koi purana record nahi mila."
 
     @function_tool
     async def end_call(self, context: RunContext, reason: str = "") -> str:
@@ -1028,6 +1028,13 @@ async def my_agent(ctx: JobContext):
             logger.info("LANG TTS locale -> %s (stt=%s)", locale, code)
         except Exception as e:
             logger.warning("LANG locale switch failed: %s", e)
+
+        try:
+            if hasattr(session, "stt") and hasattr(session.stt, "update_options"):
+                session.stt.update_options(language=locale)
+                logger.info("LANG STT locale dynamically reconfigured -> %s", locale)
+        except Exception as e:
+            logger.debug("LANG STT switch notice: %s", e)
 
     @ctx.room.on("data_received")
     def _on_data_received(dp) -> None:

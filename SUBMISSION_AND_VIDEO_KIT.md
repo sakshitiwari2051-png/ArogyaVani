@@ -45,20 +45,20 @@ Problem  Setting  Triage (Gnani)  Safety Latch       Generic Savings    Handoff 
 - **On-Screen Badge:** `Gnani Prisma STT (hi-IN) ➔ Latency < 240ms ➔ Gnani Timbre TTS (Nalini)`
 
 #### Scene 3: The 108 Emergency Latch (Deterministic Safety) (0:35 – 0:50)
-- **Visual:** Caller reports an emergency. Instantly, an amber/red emergency card triggers with an audible 108 bypass confirmation and ticket ID.
+- **Visual:** Caller reports an emergency. Instantly, an amber/red emergency card triggers with an audible 108 priority guidance and escalation ticket ID.
 - **Caller (Hindi):**
   > *"नहीं, पर मेरे पड़ोसी को अचानक सीने में बहुत तेज़ दर्द हो रहा है और पसीना आ रहा है!"*
 - **ArogyaVani (Immediate Priority Interrupt):**
-  > *"यह एक मेडिकल इमरजेंसी हो सकती है! मैंने 108 एम्बुलेंस को अलर्ट कर दिया है। आपका आपातकालीन संदर्भ नंबर है #EMG-8402। कृपया मरीज को तुरंत समतल ज़मीन पर लिटाएं।"*
-- **On-Screen Badge:** `⚡ Deterministic Regex Guard Latch: Zero Hallucination 108 Dispatch`
+  > *"यह एक गंभीर मेडिकल इमरजेंसी हो सकती है! तुरंत 108 एम्बुलेंस को कॉल करें। मैंने क्लिनिकल रिव्यू के लिए आपातकालीन रेफरेंस #EMG-8402 दर्ज कर दिया है। कृपया मरीज को शांत और समतल ज़मीन पर रखें।"*
+- **On-Screen Badge:** `⚡ Deterministic Emergency Guard: Immediate 108 Guidance & Human Escalation`
 
-#### Scene 4: Jan Aushadhi Generic Medicine Savings (0:50 – 1:05)
-- **Visual:** Card pops up showing branded drug price (₹120) vs generic Jan Aushadhi salt (₹18) — an 85% savings calculation.
+#### Scene 4: Jan Aushadhi Generic Medicine Guidance (0:50 – 1:05)
+- **Visual:** Card pops up showing branded drug mapped to its active chemical salt and PMBJP Jan Aushadhi guidance with pharmacist confirmation safeguard.
 - **Caller (Hinglish):**
   > *"डॉक्टर ने Augmentin 625 लिखी है, बहुत महंगी है। कोई सस्ती दवाई है क्या?"*
 - **ArogyaVani (Gnani Timbre TTS):**
-  > *"बिल्कुल! Augmentin में Amoxicillin और Clavulanic Acid साल्ट होता है। जन औषधि केंद्र पर यही दवा सिर्फ 18 रुपये में उपलब्ध है, जिससे आपकी 85% बचत होगी!"*
-- **On-Screen Badge:** `Jan Aushadhi Salt Engine ➔ ₹1.6 Lakh Cr Out-of-Pocket Savings`
+  > *"Augmentin का सक्रिय जेनेरिक साल्ट Amoxicillin + Clavulanic Acid है। प्रधानमंत्री जन औषधि केंद्र (PMBJP) पर यही जेनेरिक साल्ट किफ़ायती दरों पर उपलब्ध रहता है। दवा बदलने से पहले अपने डॉक्टर या जन औषधि फार्मासिस्ट से डोज़ ज़रूर कन्फर्म करें।"*
+- **On-Screen Badge:** `Jan Aushadhi Salt Engine ➔ PMBJP Generic Salt Guidance`
 
 #### Scene 5: Multi-Agent Clinical Handoff (1:05 – 1:20)
 - **Visual:** Smooth transfer indicator from Triage Agent to Samar Specialist Agent with auto-generated clinical SOAP note.
@@ -93,10 +93,10 @@ ArogyaVani is a sovereign, voice-first health helpline that answers that call, b
 🧠 Gnani Evon LLM (v3.3) — 30B MoE Sovereign Indic reasoning engine with 16 clinical tools
 🔊 Gnani Timbre TTS (v2.5) — Ultra-low latency voice synthesis with natural Indian accents (Nalini & Arun)
 📞 LiveKit Agents + Twilio Elastic SIP Trunking — Dual browser & real PSTN telephone calls
-🛡️ Deterministic Emergency Latch — Instant 108 ambulance dispatch with zero LLM hallucination
-💊 Jan Aushadhi Savings Engine — Up to 85% drug salt equivalency savings
+🛡️ Deterministic Emergency Latch — Immediate 108 emergency triage guidance & human escalation with zero LLM hallucination
+💊 Jan Aushadhi Salt Engine — Generic chemical salt equivalency guidance under PMBJP guidelines
 
-Tested with 122/122 automated tests passing, resilient multi-tier fallback, and sub-300ms voice response times.
+Tested with 130/130 automated tests passing, resilient multi-tier fallback, and sub-300ms voice response times.
 
 Watch our 90-second demo below to see live Hindi triage, emergency escalation, and generic medicine lookup in action!
 
@@ -125,15 +125,15 @@ Watch the 90s demo 👇
 • Gnani Timbre TTS: Sub-200ms latency voice synthesis with warm Indian accents.
 
 3/6 🛡️ Life-Saving Safety:
-No blind prompt trust! ArogyaVani enforces a hard deterministic regex latch. Mentioning chest pain, stroke, or severe trauma immediately bypasses the LLM and dispatches a 108 emergency escalation ticket.
+No blind prompt trust! ArogyaVani enforces a hard deterministic regex latch. Mentioning chest pain, stroke, or severe trauma immediately bypasses the LLM, delivers immediate 108 emergency triage instructions, and records a priority human escalation.
 
 4/6 💊 Jan Aushadhi Salt Engine:
-Indian families spend ₹1.6 Lakh Cr on medicines. Callers ask about expensive branded prescriptions, and ArogyaVani calculates exact generic salt alternatives saving up to 85%!
+Indian families face massive out-of-pocket expenses on medicines. ArogyaVani maps expensive branded prescriptions to active generic chemical salts under PMBJP national health guidelines.
 
 5/6 📞 Telephony First:
 Works via browser WebRTC AND real telephone calls via Twilio Elastic SIP Trunking on a basic ₹1,200 feature phone over 2G/PSTN.
 
-6/6 Fully tested with 122/122 unit & live integration tests passing!
+6/6 Fully tested with 130/130 unit & live integration tests passing!
 Check out the code & architecture on GitHub:
 👉 https://github.com/Niss54/ArogyaVani
 
@@ -153,7 +153,7 @@ Use these structured answers when filling out the form on [https://www.gnani.ai/
 | **One-Line Pitch** | A voice-first AI health helpline that bridges rural India's 80% specialist deficit through Gnani AI's sovereign Indic stack, real telephone SIP calling, and deterministic emergency guardrails. |
 | **How did you integrate Gnani AI APIs?** | Implemented custom LiveKit-compatible plugins for Gnani's full stack: (1) `GnaniSTT` using `gnani-vachana` streaming WebSocket (`wss://api.vachana.ai/stt/v3/stream`) for Hindi/Hinglish recognition; (2) `GnaniTTS` using `GnaniTTSRealtimeClient` (`wss://api.vachana.ai/api/v1/tts`) with chunked `AudioEmitter` playback; and (3) `GnaniLLM` wrapping Evon v3.3 (`https://api.vachana.ai/llm/v1`) with 16 clinical triage tools and resilient multi-tier fallback. |
 | **What problem does your project solve?** | Rural healthcare delivery in India suffers from high illiteracy, linguistic barriers, and severe out-of-pocket medical debt. ArogyaVani allows anyone on a basic 2G feature phone or smartphone to speak naturally in their native language to find open health centres, calculate Jan Aushadhi generic drug savings, and safely access 108 emergency services. |
-| **Key Innovations & Differentiators** | 1. **Zero Hallucination Emergency Latch**: Hard-coded regex bypass for 108 dispatch.<br>2. **Bharat Vernacular Lexicon**: Recognizes rural idioms (e.g., "kaleje mein jalan", "chakkar").<br>3. **Telephony SIP Integration**: Inbound & outbound calling via Twilio Elastic SIP Trunk.<br>4. **Multi-Agent Room Handoff**: Transfers patient context to specialized clinical agents with automated SOAP note generation.<br>5. **100% Test Coverage**: 77 automated tests verifying end-to-end functionality. |
+| **Key Innovations & Differentiators** | 1. **Zero Hallucination Emergency Latch**: Deterministic regex guard delivering immediate 108 emergency guidance and human escalation.<br>2. **Bharat Vernacular Lexicon**: Recognizes rural idioms (e.g., "kaleje mein jalan", "chakkar").<br>3. **Telephony SIP Integration**: Inbound & outbound calling via Twilio Elastic SIP Trunk.<br>4. **Multi-Agent Room Handoff**: Transfers patient context to specialized clinical agents with automated SOAP note generation.<br>5. **100% Test Coverage**: 130 automated tests verifying end-to-end functionality. |
 | **GitHub Repository Link** | `https://github.com/Niss54/ArogyaVani` |
 | **Demo Video Link** | `[Your LinkedIn or X Post URL]` |
 

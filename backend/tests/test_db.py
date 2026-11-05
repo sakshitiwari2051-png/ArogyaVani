@@ -118,3 +118,82 @@ async def test_format_caller_for_agent(test_db_path: str):
     assert "45-55" in summary
     assert "hypertension, asthma" in summary
     assert "PHC checkup advised" in summary
+
+
+@pytest.mark.asyncio
+async def test_consent_default_zero(test_db_path: str):
+    await db.init_db(test_db_path)
+    # Direct insert without explicit consent should take DEFAULT 0
+    import aiosqlite
+
+    async with aiosqlite.connect(test_db_path) as conn:
+        await conn.execute(
+            "INSERT INTO callers (user_id, name) VALUES (?, ?)",
+            ("consent_test_user", "Deepak"),
+        )
+        await conn.commit()
+
+    record = await db.get_caller("consent_test_user", db_path=test_db_path)
+    assert record is not None
+    assert record["consent_given"] == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_caller_cascade_atomic(test_db_path: str):
+    await db.init_db(test_db_path)
+    user_id = "cascade_user_99"
+    await db.save_caller(
+        user_id=user_id,
+        name="Sunil",
+        consent_given=True,
+        db_path=test_db_path,
+    )
+    # Save an escalation and a clinical note for this user
+    await db.create_escalation(
+        caller_name="Sunil",
+        caller_user_id=user_id,
+        urgency="high",
+        what_happened="Fever and chills",
+        already_checked="Paracetamol",
+        followup_method="phone",
+        db_path=test_db_path,
+    )
+    await db.save_clinical_note(
+        call_id=1,
+        caller_user_id=user_id,
+        caller_name="Sunil",
+        soap_record={
+            "soap": {
+                "subjective": {"chief_complaint": "fever"},
+                "objective": {"vitals_reported": {}},
+                "assessment": {"triage_urgency": "medium"},
+                "plan": {"action_recommended": "PHC visit"},
+            }
+        },
+        db_path=test_db_path,
+    )
+
+    # Perform atomic cascade deletion
+    deleted = await db.delete_caller(user_id=user_id, db_path=test_db_path)
+    assert deleted is True
+
+    # Assert caller profile is gone
+    record = await db.get_caller(user_id, db_path=test_db_path)
+    assert record is None
+
+    # Assert escalations and clinical notes are also purged
+    import aiosqlite
+
+    async with aiosqlite.connect(test_db_path) as conn:
+        async with conn.execute(
+            "SELECT COUNT(*) FROM escalations WHERE caller_user_id = ?", (user_id,)
+        ) as cur:
+            row = await cur.fetchone()
+            assert row[0] == 0
+
+        async with conn.execute(
+            "SELECT COUNT(*) FROM clinical_notes WHERE caller_user_id = ?", (user_id,)
+        ) as cur:
+            row = await cur.fetchone()
+            assert row[0] == 0
+

@@ -32,7 +32,37 @@ const EMPTY = {
   recent_calls: [],
 };
 
-export async function GET() {
+function verifyAdminAuth(req: Request): boolean {
+  const expected = process.env.ADMIN_TOKEN || process.env.LIVEKIT_API_SECRET;
+  if (expected) {
+    const adminHeader = req.headers.get('x-admin-token');
+    if (adminHeader && adminHeader === expected) return true;
+
+    const authHeader = req.headers.get('authorization') || '';
+    if (authHeader.startsWith('Bearer ') && authHeader.slice(7) === expected) return true;
+
+    return false;
+  }
+
+  // Development localhost fallback if no ADMIN_TOKEN is set
+  const host = req.headers.get('host') || '';
+  if (
+    process.env.NODE_ENV === 'development' &&
+    (host.includes('localhost') || host.includes('127.0.0.1'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export async function GET(req: Request) {
+  if (!verifyAdminAuth(req)) {
+    return NextResponse.json(
+      { error: 'Unauthorized — administrative authentication required to view call analytics.' },
+      { status: 401, headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
   const db = openDb();
   if (!db) return NextResponse.json(EMPTY, { headers: { 'Cache-Control': 'no-store' } });
 
