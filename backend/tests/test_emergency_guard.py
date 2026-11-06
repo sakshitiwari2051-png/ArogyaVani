@@ -198,3 +198,24 @@ def test_mixed_negation_and_positive_emergency_scanner():
     # 4. English denied symptom
     english_negated = "I don't have any chest pain, just mild sneezing"
     assert scan_emergency(english_negated) is False
+
+    # 5. Multi-word filler negations (e.g. 'saans lene mein koi dikkat/takleef nahi hai')
+    assert scan_emergency("Mujhe saans lene mein koi dikkat nahi hai") is False
+    assert scan_emergency("Mujhe saans lene mein takleef nahi hai") is False
+    assert scan_emergency("Mujhe saans lene mein koi pareshani nahi ho rahi") is False
+
+    # 6. Multi-word negation followed by true emergency in contrastive clause
+    assert (
+        scan_emergency(
+            "Mujhe saans lene mein dikkat nahi hai lekin seene mein dard ho raha hai"
+        )
+        is True
+    )
+
+    # 7. Past-tense symptom resolved in subsequent contrastive clause (Robust negation)
+    assert (
+        scan_emergency("Dard to tha subah par abhi utna serious kuch bacha nahi")
+        is False
+    )
+    assert scan_emergency("Seene me dard tha subah par ab theek hai") is False
+    assert scan_emergency("Kal chest pain tha par abhi bilkul aaram hai") is False

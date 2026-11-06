@@ -141,10 +141,10 @@ RAW_TAG_REGEX = re.compile(r"</?function[^>]*>", re.IGNORECASE)
 
 
 def is_negated_phrase(text: str, matched_span: tuple[int, int]) -> bool:
-    """Check if the matched clinical symptom keyword is preceded or followed by negation markers."""
+    """Check if the matched clinical symptom keyword is preceded or followed by negation or clinical resolution markers."""
     start, end = matched_span
     pre = text[max(0, start - 40) : start].lower()
-    post = text[end : min(len(text), end + 40)].lower()
+    post = text[end : min(len(text), end + 80)].lower()
 
     # Preceding double-negation / affirmation override:
     # "not not", "never not", "not without", "no doubt", "isn't untrue"
@@ -158,13 +158,43 @@ def is_negated_phrase(text: str, matched_span: tuple[int, int]) -> bool:
     ):
         return True
 
-    # Succeeding negation: "nahi hai", "nahin", "na ho", "nahi", "not present", "bilkul nahi", "negative"
-    if re.search(r"^\s*(bhi\s+)?(bilkul\s+)?(nahi|nahin|na|not|negative)\b", post):
+    # Succeeding clause-bounded negation check:
+    # Look for contrastive clause boundaries ("par", "lekin", "but", "however", "aur", punctuation)
+    clause_parts = re.split(
+        r"[,.;?!]|\b(lekin|par|magar|kintu|parantu|aur|and|but|however|although)\b",
+        post,
+        maxsplit=1,
+    )
+    clause_post = clause_parts[0]
+
+    # 1. Immediate clause negation or resolution:
+    # Covers fillers and resolution phrases like "mein koi dikkat nahi", "utna serious kuch bacha nahi", "theek ho gaya", etc.
+    words = clause_post.strip().split()[:8]
+    window = " ".join(words)
+
+    if re.search(
+        r"\b(nahi|nahin|na\s+(ho|raha|rahi|tha|thi)|not|negative|absent|denied|ruled\s+out|no\s+more|bilkul\s+nahi|koi\s+nahi|theek|thik|normal|bacha\s+nahi|bachi\s+nahi|kuch\s+nahi|aram\s+hai|aaram\s+hai|gayab|khatam|resolved|gone|नहीं|ना\s+(हो|रहा|रही)|ठीक|गायब|खत्म|आराम)\b",
+        window,
+    ):
         return True
 
-    return bool(
-        re.search(r"^\s*(is\s+)?(not\s+present|denied|ruled\s+out|absent)\b", post)
+    # 2. Past-tense occurrence resolved in subsequent contrastive clause:
+    # Example: "Dard to tha subah par abhi utna serious kuch bacha nahi" or "Seene me dard tha kal par ab theek hai"
+    has_past_marker = bool(
+        re.search(
+            r"\b(tha|thi|the|pehle|earlier|previously|past|kal|subah|raat\s+ko|था|थी|थे|पहले|कल|सुबह)\b",
+            clause_post,
+        )
     )
+    if has_past_marker and len(clause_parts) > 1:
+        contrastive_remainder = post[len(clause_post) :]
+        if re.search(
+            r"\b(nahi|nahin|not|theek|thik|normal|bacha\s+nahi|kuch\s+nahi|aram|aaram|fine|ok|okay|relief|नहीं|ठीक|आराम|बचा\s+नहीं)\b",
+            contrastive_remainder,
+        ):
+            return True
+
+    return False
 
 
 # A red flag must not depend on the LLM noticing it. This scan runs on every final

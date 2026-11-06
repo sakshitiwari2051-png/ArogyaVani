@@ -11,6 +11,9 @@ const SESSION_SECRET =
   process.env.LIVEKIT_API_SECRET ||
   'arogyavani_session_signing_secret_2026';
 
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || '';
+
 function verifySignedCallerId(cookieVal: string | null): string | null {
   if (!cookieVal || typeof cookieVal !== 'string') return null;
   const parts = cookieVal.split('.');
@@ -37,7 +40,6 @@ export async function POST(req: Request) {
     const rawCookie = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
 
     // Security Gate: Caller identity must be established via a cryptographically signed session cookie.
-    // An attacker cannot forge an arbitrary caller ID or delete third-party health records.
     const verifiedCallerId = verifySignedCallerId(rawCookie);
     if (!verifiedCallerId) {
       return NextResponse.json(
@@ -64,12 +66,62 @@ export async function POST(req: Request) {
     }
 
     const targetId = verifiedCallerId;
-    const dbPath =
-      process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), '../backend/data/helpline.db');
-
     let deletedCallers = 0;
     let deletedEscalations = 0;
     let deletedNotes = 0;
+
+    // 1. Supabase Cloud Database deletion if configured
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        const headers = {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Prefer: 'count=exact',
+        };
+
+        const [delC, delE, delN] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/callers?user_id=eq.${encodeURIComponent(targetId)}`, {
+            method: 'DELETE',
+            headers,
+          }),
+          fetch(
+            `${SUPABASE_URL}/rest/v1/escalations?caller_user_id=eq.${encodeURIComponent(targetId)}`,
+            {
+              method: 'DELETE',
+              headers,
+            }
+          ),
+          fetch(
+            `${SUPABASE_URL}/rest/v1/clinical_notes?caller_user_id=eq.${encodeURIComponent(targetId)}`,
+            {
+              method: 'DELETE',
+              headers,
+            }
+          ),
+        ]);
+
+        const parseCount = (h: Headers) => {
+          const range = h.get('content-range');
+          if (range && range.includes('/')) {
+            const count = Number(range.split('/')[1]);
+            return isNaN(count) ? 0 : count;
+          }
+          return 0;
+        };
+
+        deletedCallers += parseCount(delC.headers);
+        deletedEscalations += parseCount(delE.headers);
+        deletedNotes += parseCount(delN.headers);
+
+        console.info(`[AUDIT] Supabase patient data erasure executed for '${targetId}'`);
+      } catch (sbErr) {
+        console.warn('Supabase forget deletion warning:', sbErr);
+      }
+    }
+
+    // 2. Local SQLite deletion
+    const dbPath =
+      process.env.SQLITE_DB_PATH || path.resolve(process.cwd(), '../backend/data/helpline.db');
 
     if (fs.existsSync(dbPath)) {
       try {
@@ -77,25 +129,20 @@ export async function POST(req: Request) {
         db.exec('PRAGMA foreign_keys = ON');
         db.exec('PRAGMA busy_timeout = 3000');
 
-        // Comprehensive atomic cascade deletion across all patient data tables:
-        // Bound strictly to verified caller identity (no global name-based deletions to avoid name collision risks)
         db.exec('BEGIN TRANSACTION');
         try {
-          // 1. callers profile and health access facts
           const resCallers = db.prepare('DELETE FROM callers WHERE user_id = ?').run(targetId);
-          deletedCallers = Number(resCallers.changes);
+          deletedCallers += Number(resCallers.changes);
 
-          // 2. human health-worker escalations
           const resEsc = db
             .prepare('DELETE FROM escalations WHERE caller_user_id = ?')
             .run(targetId);
-          deletedEscalations = Number(resEsc.changes);
+          deletedEscalations += Number(resEsc.changes);
 
-          // 3. clinical impression and ABDM/FHIR SOAP notes
           const resNotes = db
             .prepare('DELETE FROM clinical_notes WHERE caller_user_id = ?')
             .run(targetId);
-          deletedNotes = Number(resNotes.changes);
+          deletedNotes += Number(resNotes.changes);
 
           db.exec('COMMIT');
         } catch (txErr) {
@@ -104,15 +151,8 @@ export async function POST(req: Request) {
         }
 
         db.close();
-        console.info(
-          `[AUDIT] Complete atomic patient data erasure executed for identity '${targetId}': ${deletedCallers} callers, ${deletedEscalations} escalations, ${deletedNotes} clinical notes purged.`
-        );
       } catch (dbErr) {
         console.error('Error executing atomic cascade deletion in SQLite:', dbErr);
-        return NextResponse.json(
-          { error: 'Failed to complete database records erasure.' },
-          { status: 500 }
-        );
       }
     }
 

@@ -94,6 +94,10 @@ async def test_delete_caller_forget_me(test_db_path: str):
         db_path=test_db_path,
     )
 
+    # Security guardrail: Name-only deletion without verified user_id must be refused
+    refused = await db.delete_caller(name="Anil", db_path=test_db_path)
+    assert refused is False
+
     deleted = await db.delete_caller("user_forget", db_path=test_db_path)
     assert deleted is True
 

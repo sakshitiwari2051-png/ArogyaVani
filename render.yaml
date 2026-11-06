@@ -1,0 +1,66 @@
+# Render Blueprint for ArogyaVani (Voice AI + Sovereign Stack)
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # 1. LiveKit Voice Agent Worker (Stateful background process)
+  - type: worker
+    name: arogyavani-voice-agent
+    runtime: python
+    region: oregon
+    plan: starter
+    rootDir: backend
+    buildCommand: "pip install uv && uv sync && uv run python src/agent.py download-files"
+    startCommand: "uv run python src/agent.py start"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: GNANI_API_KEY
+        sync: false
+      - key: GNANI_API_BASE_URL
+        value: "https://api.vachana.ai"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+
+  # 2. Next.js 15 Web Service (Frontend UI + Admin Dashboard)
+  - type: web
+    name: arogyavani-web
+    runtime: node
+    region: oregon
+    plan: starter
+    rootDir: frontend
+    buildCommand: "corepack enable && pnpm install && pnpm build"
+    startCommand: "pnpm start"
+    envVars:
+      - key: NODE_VERSION
+        value: "22.5.0"
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+

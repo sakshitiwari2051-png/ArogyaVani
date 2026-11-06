@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -6,6 +7,29 @@ import { DatabaseSync } from 'node:sqlite';
 export const revalidate = 0;
 
 const STATUSES = ['open', 'acknowledged', 'resolved'];
+
+interface EscalationRow {
+  id: number | string;
+  caller_user_id: string;
+  caller_name?: string;
+  language?: string;
+  urgency?: string;
+  what_happened: string;
+  already_checked?: string;
+  followup_method?: string;
+  callback_phone?: string;
+  status: string;
+  resolution_note?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_KEY =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  '';
 
 function openDb() {
   const dbPath =
@@ -18,14 +42,27 @@ function openDb() {
 
 const ref = (id: number) => `ESC-${String(id).padStart(4, '0')}`;
 
+function timingSafeCompare(a: string, b: string): boolean {
+  try {
+    const bufA = Buffer.from(a, 'utf-8');
+    const bufB = Buffer.from(b, 'utf-8');
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
+
 function verifyAdminAuth(req: Request): boolean {
   const expected = process.env.ADMIN_TOKEN || process.env.LIVEKIT_API_SECRET;
   if (expected) {
     const adminHeader = req.headers.get('x-admin-token');
-    if (adminHeader && adminHeader === expected) return true;
+    if (adminHeader && timingSafeCompare(adminHeader, expected)) return true;
 
     const authHeader = req.headers.get('authorization') || '';
-    if (authHeader.startsWith('Bearer ') && authHeader.slice(7) === expected) return true;
+    if (authHeader.startsWith('Bearer ') && timingSafeCompare(authHeader.slice(7), expected)) {
+      return true;
+    }
 
     return false;
   }
@@ -43,7 +80,7 @@ function verifyAdminAuth(req: Request): boolean {
 }
 
 export async function GET(req: Request) {
-  // Enforce server-side authentication for patient escalation records
+  // Enforce server-side constant-time authentication for patient escalation records
   if (!verifyAdminAuth(req)) {
     return NextResponse.json(
       {
@@ -56,17 +93,51 @@ export async function GET(req: Request) {
 
   try {
     const status = new URL(req.url).searchParams.get('status') ?? 'open';
+
+    // 1. Prioritize Cloud Supabase if configured (Production / Vercel ready)
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        const queryParams = new URLSearchParams({
+          select:
+            'id,caller_user_id,caller_name,language,urgency,what_happened,already_checked,followup_method,callback_phone,status,resolution_note,created_at,updated_at',
+          order: 'created_at.desc',
+          limit: '100',
+        });
+        if (status && status !== 'all') {
+          queryParams.set('status', `eq.${status}`);
+        }
+
+        const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/escalations?${queryParams.toString()}`, {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+          },
+          cache: 'no-store',
+        });
+
+        if (sbRes.ok) {
+          const rows = (await sbRes.json()) as EscalationRow[];
+          const escalations = rows.map((r) => ({ ...r, ref: ref(Number(r.id)) }));
+          console.info(
+            `[AUDIT] Retrieved ${escalations.length} escalations from Supabase (filter: ${status})`
+          );
+          return NextResponse.json({ escalations }, { headers: { 'Cache-Control': 'no-store' } });
+        }
+      } catch (sbErr) {
+        console.warn('Supabase fetch failed, falling back to local SQLite:', sbErr);
+      }
+    }
+
+    // 2. Fallback to Local SQLite
     const db = openDb();
     if (!db)
       return NextResponse.json({ escalations: [] }, { headers: { 'Cache-Control': 'no-store' } });
 
     try {
-      // Audit log authorized escalation data access
       console.info(
-        `[AUDIT] Authorized escalation records retrieved at ${new Date().toISOString()} (filter: ${status})`
+        `[AUDIT] Authorized escalation records retrieved from SQLite at ${new Date().toISOString()} (filter: ${status})`
       );
 
-      // Strictly project clinical escalation fields matching backend db.py schema
       const query = status
         ? db.prepare(
             `SELECT id, caller_user_id, caller_name, language, urgency, what_happened, already_checked, followup_method, callback_phone, status, resolution_note, created_at, updated_at
@@ -82,7 +153,7 @@ export async function GET(req: Request) {
              LIMIT 100`
           );
 
-      const rows = status ? query.all(status) : query.all();
+      const rows = (status ? query.all(status) : query.all()) as unknown as EscalationRow[];
       const escalations = rows.map((r) => ({ ...r, ref: ref(Number(r.id)) }));
       return NextResponse.json({ escalations }, { headers: { 'Cache-Control': 'no-store' } });
     } finally {
@@ -112,6 +183,39 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'bad ref or status' }, { status: 400 });
     }
 
+    // 1. Supabase PATCH
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/escalations?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify({
+            status,
+            resolution_note: note,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+
+        if (patchRes.ok) {
+          const updated = await patchRes.json();
+          if (updated && updated.length > 0) {
+            console.info(`[AUDIT] Escalation ${ref(id)} updated in Supabase to '${status}'`);
+            return NextResponse.json({
+              escalation: { ...updated[0], ref: ref(id) },
+            });
+          }
+        }
+      } catch (sbErr) {
+        console.warn('Supabase PATCH failed, falling back to SQLite:', sbErr);
+      }
+    }
+
+    // 2. Local SQLite PATCH
     const db = openDb();
     if (!db) return NextResponse.json({ error: 'database not found' }, { status: 404 });
     try {
@@ -130,7 +234,7 @@ export async function PATCH(req: Request) {
         .prepare(
           'SELECT id, caller_user_id, caller_name, language, urgency, what_happened, already_checked, followup_method, callback_phone, status, resolution_note, created_at, updated_at FROM escalations WHERE id = ?'
         )
-        .get(id);
+        .get(id) as unknown as EscalationRow;
       return NextResponse.json({ escalation: { ...row, ref: ref(id) } });
     } finally {
       db.close();

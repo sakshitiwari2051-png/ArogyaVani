@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import aiosqlite
+import httpx
 
 logger = logging.getLogger("db")
 
@@ -15,6 +16,30 @@ DEFAULT_DB_PATH = os.getenv(
     str(Path(__file__).parent.parent / "data" / "helpline.db"),
 )
 DB_PATH = ""  # Tests may monkeypatch DB_PATH or DEFAULT_DB_PATH
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.getenv("SUPABASE_SECRET_KEY") or os.getenv(
+    "SUPABASE_PUBLISHABLE_KEY", ""
+)
+
+
+async def _supabase_request(
+    method: str, endpoint: str, **kwargs: Any
+) -> httpx.Response | None:
+    """Execute REST API query to Supabase PostgreSQL cluster with graceful degradation."""
+    if not (SUPABASE_URL and SUPABASE_KEY):
+        return None
+    url = f"{SUPABASE_URL}/rest/v1/{endpoint.lstrip('/')}"
+    headers = kwargs.pop("headers", {}) or {}
+    headers.setdefault("apikey", SUPABASE_KEY)
+    headers.setdefault("Authorization", f"Bearer {SUPABASE_KEY}")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.request(method, url, headers=headers, **kwargs)
+            return resp
+    except Exception as e:
+        logger.debug("Supabase async request failed (%s %s): %s", method, endpoint, e)
+        return None
 
 
 def _ensure_db_dir(db_path: str) -> str:
@@ -205,6 +230,25 @@ async def save_caller(
         )
         await db.commit()
 
+    # Cloud Supabase synchronization
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            await _supabase_request(
+                "POST",
+                "callers",
+                json={
+                    "user_id": user_id,
+                    "name": name.strip(),
+                    "language_preference": language_preference,
+                    "consent_given": 1,
+                    "facts": facts_dict,
+                    "last_interaction": now_iso,
+                },
+                headers={"Prefer": "resolution=merge-duplicates"},
+            )
+        except Exception as _sbe:
+            logger.debug("Supabase save_caller sync notice: %s", _sbe)
+
     logger.info("Saved caller memory for user_id=%s (name=%s)", user_id, name)
     return {
         "user_id": user_id,
@@ -217,41 +261,51 @@ async def save_caller(
 
 
 async def delete_caller(user_id: str = "", name: str = "", db_path: str = "") -> bool:
-    """Atomic cascade deletion across callers, escalations, and clinical_notes."""
+    """Atomic cascade deletion across callers, escalations, and clinical_notes strictly bound to verified user_id.
+
+    Security & Data Governance Guardrail:
+    Patient wipeout is strictly permitted only with a verified caller user_id.
+    Deletions based on patient first/last names alone are strictly prohibited to prevent
+    unintended mass data loss across common Indian names (e.g. Ramesh, Sita, Amit).
+    """
     clean_id = (user_id or "").strip()
-    clean_name = (name or "").strip()
-    if not clean_id and not clean_name:
+    if not clean_id:
+        if name:
+            logger.warning(
+                "delete_caller REFUSED: Name-only deletion requested for '%s' without verified user_id. "
+                "Global name-based deletion is forbidden for patient safety.",
+                name,
+            )
         return False
+
     db_path = _ensure_db_dir(db_path)
     async with aiosqlite.connect(db_path) as db:
         await db.execute("BEGIN TRANSACTION")
         try:
             total_deleted = 0
-            if clean_id:
-                c1 = await db.execute(
-                    "DELETE FROM callers WHERE user_id = ?", (clean_id,)
-                )
-                total_deleted += c1.rowcount
-                await db.execute(
-                    "DELETE FROM escalations WHERE caller_user_id = ?", (clean_id,)
-                )
-                await db.execute(
-                    "DELETE FROM clinical_notes WHERE caller_user_id = ?", (clean_id,)
-                )
-            elif clean_name:
-                c1 = await db.execute(
-                    "DELETE FROM callers WHERE LOWER(name) = LOWER(?)", (clean_name,)
-                )
-                total_deleted += c1.rowcount
-                await db.execute(
-                    "DELETE FROM escalations WHERE LOWER(caller_name) = LOWER(?)",
-                    (clean_name,),
-                )
-                await db.execute(
-                    "DELETE FROM clinical_notes WHERE LOWER(caller_name) = LOWER(?)",
-                    (clean_name,),
-                )
+            c1 = await db.execute("DELETE FROM callers WHERE user_id = ?", (clean_id,))
+            total_deleted += c1.rowcount
+            await db.execute(
+                "DELETE FROM escalations WHERE caller_user_id = ?", (clean_id,)
+            )
+            await db.execute(
+                "DELETE FROM clinical_notes WHERE caller_user_id = ?", (clean_id,)
+            )
             await db.commit()
+
+            # Cloud Supabase atomic cascade deletion
+            if SUPABASE_URL and SUPABASE_KEY:
+                try:
+                    await _supabase_request("DELETE", f"callers?user_id=eq.{clean_id}")
+                    await _supabase_request(
+                        "DELETE", f"escalations?caller_user_id=eq.{clean_id}"
+                    )
+                    await _supabase_request(
+                        "DELETE", f"clinical_notes?caller_user_id=eq.{clean_id}"
+                    )
+                except Exception as _sbe:
+                    logger.debug("Supabase delete sync notice: %s", _sbe)
+
             return total_deleted > 0
         except Exception:
             await db.rollback()
@@ -444,6 +498,29 @@ async def create_escalation(
         return None
     rec = _esc_row_to_dict(row)
     rec["deduped"] = rec["created_at"] != rec["updated_at"]
+
+    # Cloud Supabase synchronization
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            await _supabase_request(
+                "POST",
+                "escalations",
+                json={
+                    "caller_user_id": caller_user_id,
+                    "caller_name": caller_name.strip(),
+                    "language": language or "hi",
+                    "urgency": level,
+                    "what_happened": what,
+                    "already_checked": checked,
+                    "followup_method": followup,
+                    "callback_phone": callback_phone.strip(),
+                    "dedupe_key": key,
+                    "status": "open",
+                },
+            )
+        except Exception as _sbe:
+            logger.debug("Supabase escalation sync notice: %s", _sbe)
+
     logger.info(
         "Escalation %s %s (urgency=%s, caller=%s)",
         rec["ref"],
@@ -722,6 +799,26 @@ async def save_clinical_note(
             logger.info(
                 "Persisted FHIR R4 clinical note %d for call %d", last_id, call_id
             )
+
+            # Cloud Supabase synchronization
+            if SUPABASE_URL and SUPABASE_KEY:
+                try:
+                    await _supabase_request(
+                        "POST",
+                        "clinical_notes",
+                        json={
+                            "call_id": call_id,
+                            "caller_user_id": caller_user_id,
+                            "caller_name": caller_name,
+                            "triage_urgency": urgency,
+                            "chief_complaint": chief,
+                            "clinical_summary": summary,
+                            "fhir_resource": json.loads(fhir_json),
+                        },
+                    )
+                except Exception as _sbe:
+                    logger.debug("Supabase save_clinical_note sync notice: %s", _sbe)
+
             return last_id
     except Exception as e:
         logger.warning("save_clinical_note failed: %s", e)

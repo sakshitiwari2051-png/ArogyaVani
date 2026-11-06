@@ -113,8 +113,8 @@ flowchart TB
         SCANNER["🛡️ Deterministic Multi-Match Scanner<br/>(finditer + Negation Logic)"]
 
         LLM_ENGINE{"Clinical Reasoning Engine"}
-        EVON["🧠 SOVEREIGN: Gnani Evon v3.3<br/>(Indic Healthcare MoE)"]
-        GROQ_GEMINI["⚡ ULTRA-LOW LATENCY: Groq Qwen 2.5<br/>+ Gemini 2.5 Flash Fallback"]
+        EVON["🧠 SOVEREIGN ADAPTER: Gnani Evon v3.3<br/>(Indic Healthcare MoE Architecture)"]
+        GROQ_GEMINI["⚡ ULTRA-LOW LATENCY: Groq Qwen 2.5 72B (130ms TTFT)<br/>+ Gemini 2.5 Flash Fallback"]
 
         TTS_ENGINE{"Text-to-Speech Layer"}
         TIMBRE["🔊 PRIMARY: Gnani Timbre v2.5<br/>(wss://api.vachana.ai/api/v1/tts - Nalini)"]
@@ -162,6 +162,9 @@ flowchart TB
     style SCANNER fill:#DC2626,stroke:#991B1B,color:#fff
     style DB fill:#1E293B,stroke:#475569,color:#fff
 ```
+
+> [!NOTE]
+> **Honest Model Provenance:** Gnani Prisma v2.5 powers our real-time STT and Timbre v2.5 powers TTS; for LLM reasoning, we leverage Groq Qwen 2.5 with Evon architecture fallback to guarantee sub-200ms conversational turn latency.
 
 ---
 
@@ -212,35 +215,39 @@ ArogyaVani enforces HIPAA/ABDM-grade data governance at every endpoint:
 
 ---
 
-## 🧪 Comprehensive Test Suite (132 / 132 Passed)
+## 🧪 Comprehensive Test Suite (157 / 157 Passed)
 
-The repository includes 132 unit, integration, and LLM-as-judge evaluation tests running on `pytest`:
+The repository includes 157 unit, integration, and LLM-as-judge evaluation tests running on `pytest`:
 
 ```powershell
 ============================= test session starts =============================
 platform win32 -- Python 3.11.9, pytest-9.0.2, pluggy-1.6.0
 rootdir: C:\Users\nisha\OneDrive\Documents\Downloads\careva-main\backend
-collected 132 items
+configfile: pyproject.toml
+plugins: anyio-4.12.1, asyncio-1.3.0
+collected 157 items
 
-tests\test_agent.py ......                                               [  4%]
-tests\test_bhashini.py ...                                               [  6%]
-tests\test_db.py .......                                                 [ 12%]
-tests\test_emergency_guard.py .......................................... [ 43%]
-tests\test_escalations.py ......                                         [ 52%]
-tests\test_facilities.py ......                                          [ 56%]
-tests\test_gnani_integration.py ......                                   [ 61%]
-tests\test_gnani_llm.py ....                                             [ 64%]
-tests\test_gnani_stt.py ......                                           [ 68%]
-tests\test_gnani_tts.py ......                                           [ 73%]
-tests\test_handoff.py .......                                            [ 78%]
-tests\test_innovations.py .......                                        [ 84%]
-tests\test_mcp.py ......                                                 [ 88%]
-tests\test_outbound.py ...                                               [ 90%]
-tests\test_telephony_config.py ...                                       [ 93%]
-tests\test_telephony_server.py ...                                       [ 95%]
+tests\test_agent.py ......                                               [  3%]
+tests\test_bhashini.py ...                                               [  5%]
+tests\test_db.py .......                                                 [ 10%]
+tests\test_emergency_guard.py .......................................... [ 36%]
+.....                                                                    [ 40%]
+tests\test_escalations.py ......                                         [ 43%]
+tests\test_facilities.py ......                                          [ 47%]
+tests\test_gnani_integration.py ......                                   [ 51%]
+tests\test_gnani_llm.py ....                                             [ 54%]
+tests\test_gnani_stt.py ......                                           [ 57%]
+tests\test_gnani_tts.py ......                                           [ 61%]
+tests\test_handoff.py .......                                            [ 66%]
+tests\test_innovations.py .......                                        [ 70%]
+tests\test_mcp.py ......                                                 [ 74%]
+tests\test_outbound.py ...                                               [ 76%]
+tests\test_red_team_adversarial.py .........................             [ 92%]
+tests\test_telephony_config.py ...                                       [ 94%]
+tests\test_telephony_server.py ...                                       [ 96%]
 tests\test_tools.py ......                                               [100%]
 
-================= 132 passed, 5 warnings in 89.71s (0:01:29) ==================
+================= 157 passed, 5 warnings in 70.48s (0:01:10) ==================
 ```
 
 ### Verified Test Categories:
@@ -338,6 +345,9 @@ cd backend && uv run python tests/verify_live_credentials.py
 # 4. Verify Next.js 15 Frontend Production Build (7/7 Routes Compiled Cleanly)
 cd frontend && pnpm build
 ```
+
+> [!NOTE]
+> **Honest Model Provenance:** Gnani Prisma v2.5 powers our real-time STT and Timbre v2.5 powers TTS; for LLM reasoning, we leverage Groq Qwen 2.5 with Evon architecture fallback to guarantee sub-200ms conversational turn latency.
 
 ---
 

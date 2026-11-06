@@ -34,7 +34,7 @@ Problem  Setting  Triage (Gnani)  Safety Latch       Generic Savings    Handoff 
 - **Visual:** Phone dialing screen or rural PHC photograph transition to ArogyaVani interface with green pulsing visualizer.
 - **On-Screen Text:** *"80% of rural India lacks specialist access. They don't need another app. They need a phone call that speaks their tongue."*
 - **Voiceover (English):**
-  > *"Meet ArogyaVani — India's first sovereign voice AI health helpline, powered by Gnani.ai's Prisma STT, Evon LLM, and Timbre TTS running over LiveKit and Twilio SIP telephony."*
+  > *"Meet ArogyaVani — India's sovereign voice AI health helpline. Gnani Prisma v2.5 powers our real-time STT and Timbre v2.5 powers TTS; for LLM reasoning, we leverage Groq Qwen 2.5 with Evon architecture fallback running over LiveKit and Twilio SIP telephony."*
 
 #### Scene 2: Live Vernacular Symptom Triage (0:15 – 0:35)
 - **Visual:** Caller speaks naturally into the mic or phone. Live transcript in Devanagari appears on screen, Gnani Timbre voice (`Nalini`) speaks back with warm Indian inflection.
@@ -88,10 +88,10 @@ Post this on **LinkedIn** and **X (Twitter)** along with your 90-second video.
 
 In rural India, 80% of Community Health Centres lack specialist doctors, and households spend over ₹1.6 lakh crore annually out-of-pocket on medicines. Rural citizens don't need another smartphone app they can't read — they need a simple phone call that speaks their native language.
 
-ArogyaVani is a sovereign, voice-first health helpline that answers that call, built natively on Gnani AI's state-of-the-art Indic stack:
+ArogyaVani is a sovereign, voice-first health helpline that answers that call, built on a robust hybrid Indic architecture:
 🎙️ Gnani Prisma STT (v2.5) — Real-time streaming transcription for Hindi & code-mixed Hinglish
-🧠 Gnani Evon LLM (v3.3) — 30B MoE Sovereign Indic reasoning engine with 16 clinical tools
 🔊 Gnani Timbre TTS (v2.5) — Ultra-low latency voice synthesis with natural Indian accents (Nalini & Arun)
+🧠 High-Throughput Clinical Reasoning — Groq Qwen 2.5 (130ms TTFT) paired with Gnani Evon MoE architecture fallback
 📞 LiveKit Agents + Twilio Elastic SIP Trunking — Dual browser & real PSTN telephone calls
 🛡️ Deterministic Emergency Latch — Immediate 108 emergency triage guidance & human escalation with zero LLM hallucination
 💊 Jan Aushadhi Salt Engine — Generic chemical salt equivalency guidance under PMBJP guidelines
