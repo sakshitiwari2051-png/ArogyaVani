@@ -4,24 +4,15 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Activity,
-  AlertTriangle,
   ArrowRight,
   CheckCircle2,
-  Cpu,
-  Database,
-  ExternalLink,
   Globe2,
-  Headphones,
   Lock,
-  Mic,
   Radio,
-  RefreshCw,
-  Server,
   Settings,
   ShieldCheck,
   Sparkles,
   Trash2,
-  Volume2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/shadcn/utils';

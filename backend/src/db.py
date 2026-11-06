@@ -228,15 +228,29 @@ async def delete_caller(user_id: str = "", name: str = "", db_path: str = "") ->
         try:
             total_deleted = 0
             if clean_id:
-                c1 = await db.execute("DELETE FROM callers WHERE user_id = ?", (clean_id,))
+                c1 = await db.execute(
+                    "DELETE FROM callers WHERE user_id = ?", (clean_id,)
+                )
                 total_deleted += c1.rowcount
-                await db.execute("DELETE FROM escalations WHERE caller_user_id = ?", (clean_id,))
-                await db.execute("DELETE FROM clinical_notes WHERE caller_user_id = ?", (clean_id,))
+                await db.execute(
+                    "DELETE FROM escalations WHERE caller_user_id = ?", (clean_id,)
+                )
+                await db.execute(
+                    "DELETE FROM clinical_notes WHERE caller_user_id = ?", (clean_id,)
+                )
             elif clean_name:
-                c1 = await db.execute("DELETE FROM callers WHERE LOWER(name) = LOWER(?)", (clean_name,))
+                c1 = await db.execute(
+                    "DELETE FROM callers WHERE LOWER(name) = LOWER(?)", (clean_name,)
+                )
                 total_deleted += c1.rowcount
-                await db.execute("DELETE FROM escalations WHERE LOWER(caller_name) = LOWER(?)", (clean_name,))
-                await db.execute("DELETE FROM clinical_notes WHERE LOWER(caller_name) = LOWER(?)", (clean_name,))
+                await db.execute(
+                    "DELETE FROM escalations WHERE LOWER(caller_name) = LOWER(?)",
+                    (clean_name,),
+                )
+                await db.execute(
+                    "DELETE FROM clinical_notes WHERE LOWER(caller_name) = LOWER(?)",
+                    (clean_name,),
+                )
             await db.commit()
             return total_deleted > 0
         except Exception:

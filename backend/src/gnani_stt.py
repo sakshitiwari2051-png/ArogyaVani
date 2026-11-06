@@ -301,7 +301,9 @@ class GnaniSTT(stt.STT):
         """Dynamically update language or model for active and subsequent streaming sessions."""
         if language is not None:
             self._language = normalize_language_code(language)
-            logger.info("GnaniSTT language dynamically reconfigured to: %s", self._language)
+            logger.info(
+                "GnaniSTT language dynamically reconfigured to: %s", self._language
+            )
         if model is not None:
             self._model = model
 

@@ -196,4 +196,3 @@ async def test_delete_caller_cascade_atomic(test_db_path: str):
         ) as cur:
             row = await cur.fetchone()
             assert row[0] == 0
-

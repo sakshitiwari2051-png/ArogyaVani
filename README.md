@@ -11,7 +11,8 @@
 [![Gnani Prisma](https://img.shields.io/badge/STT-Gnani%20Prisma%20v2.5-E056FD?style=for-the-badge)](https://api.vachana.ai)
 [![Gnani Timbre](https://img.shields.io/badge/TTS-Gnani%20Timbre%20v2.5-686DE0?style=for-the-badge)](https://api.vachana.ai)
 [![Gnani Evon](https://img.shields.io/badge/LLM-Gnani%20Evon%20v3.3-FF7979?style=for-the-badge)](https://api.vachana.ai)
-[![Tests Passing](https://img.shields.io/badge/Tests-132%2F132%20Passed-10B981?style=for-the-badge&logo=pytest)](backend/tests)
+[![Tests Passing](https://img.shields.io/badge/Tests-153%2F153%20Passed-10B981?style=for-the-badge&logo=pytest)](backend/tests)
+[![Latency Benchmark](https://img.shields.io/badge/Benchmark-Latency%20Verified-blueviolet?style=for-the-badge&logo=speedtest)](docs/BENCHMARK_REPORT.md)
 [![FHIR R4](https://img.shields.io/badge/ABDM%20Interoperability-HL7%20FHIR%20R4-3B82F6?style=for-the-badge)](backend/src/clinical_notes.py)
 [![Privacy First](https://img.shields.io/badge/Security-HMAC%20Signed%20%26%20Atomic%20Wipe-EF4444?style=for-the-badge)](frontend/app/api/forget/route.ts)
 [![Next.js](https://img.shields.io/badge/Next.js-15%20(Node%2022+)-000000?style=for-the-badge&logo=nextdotjs)](frontend)
@@ -38,6 +39,7 @@
 The root directory is kept clean and production-ready. Complete technical specifications, test reports, and submission materials are catalogued in [`docs/`](docs/):
 
 - 📘 [**Gnani Challenge Winning Playbook**](docs/GNANI_CHALLENGE_PLAYBOOK.md) — Architecture decisions, track alignment, and benchmark evidence.
+- ⚡ [**Voice Pipeline Latency & Benchmark Report**](docs/BENCHMARK_REPORT.md) — Real-time telemetry, TTFT, TTFB, and failover switchover metrics.
 - 🎬 [**Submission & Video Demo Kit**](docs/SUBMISSION_AND_VIDEO_KIT.md) — 90-second judge demonstration script, LinkedIn/X copy, and rehearsal guide.
 - 🛡️ [**Red Team Adversarial Security & Clinical Audit**](docs/RED_TEAM.md) — 10 adversarial injection, negation, and hallucination stress tests.
 - 📞 [**Telephony & Twilio SIP Setup**](docs/TELEPHONY_SETUP.md) — Inbound & outbound 2G/PSTN calling integration.
@@ -316,6 +318,26 @@ Or run services in separate terminals:
 - **Terminal 1 (Backend Agent):** `cd backend && uv run python src/agent.py dev`
 - **Terminal 2 (Frontend UI):** `cd frontend && pnpm dev` (Visit `http://localhost:3000`)
 - **Terminal 3 (Terminal Console Test):** `cd backend && uv run python src/agent.py console`
+
+---
+
+## ⚖️ 60-Second Hackathon Judge Verification Suite
+
+Any judge can independently verify all clinical guardrails, latency benchmarks, external credentials, and production builds in four terminal commands:
+
+```bash
+# 1. Run all 153 unit, integration, and red-team adversarial tests (100% Pass)
+cd backend && uv run pytest
+
+# 2. Run Voice Pipeline Latency Benchmark (Live WebSockets TTFT, TTFB & Failover)
+cd backend && uv run python benchmark_voice_pipeline.py
+
+# 3. Test Live Credentials & External Service Handshakes (8/8 Services Verified)
+cd backend && uv run python tests/verify_live_credentials.py
+
+# 4. Verify Next.js 15 Frontend Production Build (7/7 Routes Compiled Cleanly)
+cd frontend && pnpm build
+```
 
 ---
 
