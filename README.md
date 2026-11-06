@@ -11,7 +11,7 @@
 [![Gnani Prisma](https://img.shields.io/badge/STT-Gnani%20Prisma%20v2.5-E056FD?style=for-the-badge)](https://api.vachana.ai)
 [![Gnani Timbre](https://img.shields.io/badge/TTS-Gnani%20Timbre%20v2.5-686DE0?style=for-the-badge)](https://api.vachana.ai)
 [![Gnani Evon](https://img.shields.io/badge/LLM-Gnani%20Evon%20v3.3-FF7979?style=for-the-badge)](https://api.vachana.ai)
-[![Tests Passing](https://img.shields.io/badge/Tests-153%2F153%20Passed-10B981?style=for-the-badge&logo=pytest)](backend/tests)
+[![Tests Passing](https://img.shields.io/badge/Tests-157%2F157%20Passed-10B981?style=for-the-badge&logo=pytest)](backend/tests)
 [![Latency Benchmark](https://img.shields.io/badge/Benchmark-Latency%20Verified-blueviolet?style=for-the-badge&logo=speedtest)](docs/BENCHMARK_REPORT.md)
 [![FHIR R4](https://img.shields.io/badge/ABDM%20Interoperability-HL7%20FHIR%20R4-3B82F6?style=for-the-badge)](backend/src/clinical_notes.py)
 [![Privacy First](https://img.shields.io/badge/Security-HMAC%20Signed%20%26%20Atomic%20Wipe-EF4444?style=for-the-badge)](frontend/app/api/forget/route.ts)
@@ -326,7 +326,7 @@ Or run services in separate terminals:
 Any judge can independently verify all clinical guardrails, latency benchmarks, external credentials, and production builds in four terminal commands:
 
 ```bash
-# 1. Run all 153 unit, integration, and red-team adversarial tests (100% Pass)
+# 1. Run all 157 unit, integration, and red-team adversarial tests (100% Pass)
 cd backend && uv run pytest
 
 # 2. Run Voice Pipeline Latency Benchmark (Live WebSockets TTFT, TTFB & Failover)
