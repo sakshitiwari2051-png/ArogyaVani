@@ -8,7 +8,7 @@ This is the repository for **ArogyaVani**, a sovereign Indic voice AI health hel
 ArogyaVani/
 ├── backend/          # Python voice agent (LiveKit Agents + Gnani.ai / Murf / Deepgram / Groq)
 │   ├── src/agent.py  # Agent entrypoint — voice pipeline, clinical tools, and emergency latches
-│   └── tests/        # Pytest test suite (120+ unit and integration tests)
+│   └── tests/        # Pytest test suite (132 unit and integration tests)
 ├── frontend/         # Next.js UI (LiveKit Agents UI components, SAMAR health analytics)
 │   ├── app/          # Pages and API routes
 │   ├── components/   # UI components (agents-ui, app dashboards, shadcn ui)
