@@ -1391,8 +1391,30 @@ def _start_http_health_server() -> None:
             def do_GET(self):
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD")
                 self.end_headers()
-                self.wfile.write(b'{"status":"healthy","service":"arogyavani-agent"}')
+                payload = json.dumps(
+                    {
+                        "status": "healthy",
+                        "service": "arogyavani-voice-agent",
+                        "stack": "Gnani.ai + LiveKit Agents",
+                        "frontend_url": os.getenv(
+                            "FRONTEND_URL", "https://arogya-vani-jet.vercel.app"
+                        ),
+                        "backend_url": os.getenv(
+                            "BACKEND_URL", "https://arogyavani-6dbk.onrender.com"
+                        ),
+                    }
+                ).encode("utf-8")
+                self.wfile.write(payload)
+
+            def do_OPTIONS(self):
+                self.send_response(200)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD")
+                self.send_header("Access-Control-Allow-Headers", "*")
+                self.end_headers()
 
             def log_message(self, format_str, *args):
                 pass

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Public_Sans } from 'next/font/google';
 import localFont from 'next/font/local';
 import Script from 'next/script';
@@ -5,6 +6,13 @@ import { ThemeProvider } from '@/components/app/theme-provider';
 import { cn } from '@/lib/shadcn/utils';
 import { getAppConfig, getStyles } from '@/lib/utils';
 import '@/styles/globals.css';
+
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://arogya-vani-jet.vercel.app'),
+  title: 'ArogyaVani — AI Health Access Platform',
+  description:
+    'Sovereign Indic Voice AI Health Helpline, powered by Gnani.ai (Prisma STT, Timbre TTS, Evon LLM) & LiveKit',
+};
 
 const publicSans = Public_Sans({
   variable: '--font-public-sans',

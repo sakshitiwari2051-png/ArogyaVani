@@ -15,8 +15,16 @@
 [![Latency Benchmark](https://img.shields.io/badge/Benchmark-Latency%20Verified-blueviolet?style=for-the-badge&logo=speedtest)](docs/BENCHMARK_REPORT.md)
 [![FHIR R4](https://img.shields.io/badge/ABDM%20Interoperability-HL7%20FHIR%20R4-3B82F6?style=for-the-badge)](backend/src/clinical_notes.py)
 [![Privacy First](https://img.shields.io/badge/Security-HMAC%20Signed%20%26%20Atomic%20Wipe-EF4444?style=for-the-badge)](frontend/app/api/forget/route.ts)
-[![Next.js](https://img.shields.io/badge/Next.js-15%20(Node%2022+)-000000?style=for-the-badge&logo=nextdotjs)](frontend)
+[![Next.js](https://img.shields.io/badge/Next.js-15%20(Node%2022+)-000000?style=for-the-badge&logo=nextdotjs)](https://arogya-vani-jet.vercel.app)
+[![Live Frontend](https://img.shields.io/badge/Live%20Frontend-Vercel-black?style=for-the-badge&logo=vercel)](https://arogya-vani-jet.vercel.app)
+[![Live Backend](https://img.shields.io/badge/Live%20Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://arogyavani-6dbk.onrender.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+
+<br/>
+
+> 🚀 **Production Cloud Deployments:**  
+> 🌐 **Frontend (Next.js 15 Web Client & Clinician Dashboard):** [https://arogya-vani-jet.vercel.app](https://arogya-vani-jet.vercel.app)  
+> ⚡ **Backend (LiveKit Voice Agent Cloud Service):** [https://arogyavani-6dbk.onrender.com](https://arogyavani-6dbk.onrender.com)
 
 <br/>
 

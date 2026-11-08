@@ -155,6 +155,8 @@ Use these structured answers when filling out the form on [https://www.gnani.ai/
 | **What problem does your project solve?** | Rural healthcare delivery in India suffers from high illiteracy, linguistic barriers, and severe out-of-pocket medical debt. ArogyaVani allows anyone on a basic 2G feature phone or smartphone to speak naturally in their native language to find open health centres, calculate Jan Aushadhi generic drug savings, and safely access 108 emergency services. |
 | **Key Innovations & Differentiators** | 1. **Zero Hallucination Emergency Latch**: Deterministic regex guard delivering immediate 108 emergency guidance and human escalation.<br>2. **Bharat Vernacular Lexicon**: Recognizes rural idioms (e.g., "kaleje mein jalan", "chakkar").<br>3. **Telephony SIP Integration**: Inbound & outbound calling via Twilio Elastic SIP Trunk.<br>4. **Multi-Agent Room Handoff**: Transfers patient context to specialized clinical agents with automated SOAP note generation.<br>5. **100% Test Coverage**: 130 automated tests verifying end-to-end functionality. |
 | **GitHub Repository Link** | `https://github.com/Niss54/ArogyaVani` |
+| **Live Web App (Vercel)** | `https://arogya-vani-jet.vercel.app` |
+| **Cloud Voice Agent (Render)** | `https://arogyavani-6dbk.onrender.com` |
 | **Demo Video Link** | `[Your LinkedIn or X Post URL]` |
 
 ---

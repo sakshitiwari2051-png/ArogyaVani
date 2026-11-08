@@ -1169,7 +1169,22 @@ export function SamarDashboard() {
               )}
             </button>
 
-            {/* 3. View GitHub */}
+            {/* 3. Render Agent Status */}
+            <a
+              href="https://arogyavani-6dbk.onrender.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="clay-btn hidden items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-emerald-800 transition-transform hover:scale-105 sm:flex dark:text-emerald-400"
+              title="Cloud Voice Agent Status (Render)"
+            >
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
+              </span>
+              <span>Cloud Agent</span>
+            </a>
+
+            {/* 4. View GitHub */}
             <a
               href="https://github.com/Niss54/ArogyaVani"
               target="_blank"
