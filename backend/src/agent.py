@@ -1376,5 +1376,35 @@ async def my_agent(ctx: JobContext):
         logger.warning("Initial greeting interrupted or session closed: %s", e)
 
 
+def _start_http_health_server() -> None:
+    """Start lightweight HTTP health server on $PORT for Render / cloud web services."""
+    port_str = os.getenv("PORT")
+    if not port_str:
+        return
+    try:
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        port = int(port_str)
+
+        class _HealthHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status":"healthy","service":"arogyavani-agent"}')
+
+            def log_message(self, format_str, *args):
+                pass
+
+        httpd = HTTPServer(("0.0.0.0", port), _HealthHandler)
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        logger.info("Cloud HTTP health server listening on 0.0.0.0:%d", port)
+    except Exception as e:
+        logger.warning("Failed to start HTTP health server on port %s: %s", port_str, e)
+
+
 if __name__ == "__main__":
+    _start_http_health_server()
     cli.run_app(server)
