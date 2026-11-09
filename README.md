@@ -22,6 +22,10 @@
 
 <br/>
 
+> 🏆 **Gnani.ai Hackathon Reviewers & Evaluators:**  
+> Looking for the fast 1-page executive summary for evaluation? 👉 **[Read the 1-Page Submission Brief (`docs/ONE_PAGER.md`)](docs/ONE_PAGER.md)**  
+> *(Clinical problem statement, Sovereign Gnani stack metrics, 157/157 test evidence, live URLs, and demo in a single page).*
+
 > 🚀 **Production Cloud Deployments:**  
 > 🌐 **Frontend (Next.js 15 Web Client & Clinician Dashboard):** [https://arogya-vani-jet.vercel.app](https://arogya-vani-jet.vercel.app)  
 > ⚡ **Backend (LiveKit Voice Agent Cloud Service):** [https://arogyavani-6dbk.onrender.com](https://arogyavani-6dbk.onrender.com)
@@ -46,6 +50,7 @@
 
 The root directory is kept clean and production-ready. Complete technical specifications, test reports, and submission materials are catalogued in [`docs/`](docs/):
 
+- ⚡ [**Executive 1-Pager Submission Brief**](docs/ONE_PAGER.md) — Fast 60-second summary for hackathon judges (Clinical problem, Gnani stack, 157 tests, live URLs).
 - 📘 [**Gnani Challenge Winning Playbook**](docs/GNANI_CHALLENGE_PLAYBOOK.md) — Architecture decisions, track alignment, and benchmark evidence.
 - ⚡ [**Voice Pipeline Latency & Benchmark Report**](docs/BENCHMARK_REPORT.md) — Real-time telemetry, TTFT, TTFB, and failover switchover metrics.
 - 🎬 [**Submission & Video Demo Kit**](docs/SUBMISSION_AND_VIDEO_KIT.md) — 90-second judge demonstration script, LinkedIn/X copy, and rehearsal guide.
