@@ -56,3 +56,4 @@ ArogyaVani is a **bilingual (Hindi/English) voice-first sovereign health helplin
 ---
 
 > 📖 *For deep architectural blueprints, benchmark charts, red-team methodology, and setup instructions, see the complete [Root README.md](../README.md).*
+
