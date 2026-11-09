@@ -119,7 +119,7 @@ flowchart LR
 | Service | Environment Variable | Status | Value Preview |
 |:---|:---|:---|:---|
 | LiveKit Cloud | `LIVEKIT_URL` | ✅ Ready | `wss://arogyavani-8ztj5eef.livekit.cloud` |
-| LiveKit API | `LIVEKIT_API_KEY` | ✅ Ready | `APIC4BpYmCmjCHL` |
+| LiveKit API | `LIVEKIT_API_KEY` | ✅ Ready | `APIC4BpYm...` |
 | LiveKit Secret | `LIVEKIT_API_SECRET` | ✅ Ready | `NXC7UPpQy...` |
 | **Gnani.ai** | `GNANI_API_KEY` | ✅ **Updated** | `vach_1ytE2CY5X2...` |
 | **Gnani Base URL** | `GNANI_API_BASE_URL` | ✅ Ready | `https://api.vachana.ai` |
@@ -130,7 +130,7 @@ flowchart LR
 | **Twilio SIP** | `SIP_OUTBOUND_TRUNK_ID` | ❌ **Needed** | User to provide |
 | **Twilio Auth** | `SIP_AUTH_USERNAME` | ❌ **Needed** | User to provide |
 | **Twilio Auth** | `SIP_AUTH_PASSWORD` | ❌ **Needed** | User to provide |
-| Admin Token | `ADMIN_TOKEN` | ✅ Ready | `arogyavani_secret_token_2026` |
+| Admin Token | `ADMIN_TOKEN` | ✅ Ready | `arogyavani_adm_...` |
 
 ---
 
