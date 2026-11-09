@@ -427,7 +427,7 @@ export function SamarDashboard() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeNav, setActiveNav] = useState<'new_chat' | 'chats' | 'dashboard' | 'settings'>(
-    'dashboard'
+    'new_chat'
   );
   // Navbar Theme state
   const { theme, setTheme, resolvedTheme } = useTheme();
