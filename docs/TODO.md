@@ -57,7 +57,7 @@
 ## 📌 PHASE 6: Git Commit & GitHub Push
 - [ ] **6.1** Stage all new modules and tests.
 - [ ] **6.2** Create structured conventional commits.
-- [ ] **6.3** Fast-forward push to `https://github.com/Niss54/ArogyaVani`.
+- [ ] **6.3** Fast-forward push to `https://github.com/sakshitiwari2051-png/ArogyaVani`.
 
 ---
 

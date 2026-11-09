@@ -1186,7 +1186,7 @@ export function SamarDashboard() {
 
             {/* 4. View GitHub */}
             <a
-              href="https://github.com/Niss54/ArogyaVani"
+              href="https://github.com/sakshitiwari2051-png/ArogyaVani"
               target="_blank"
               rel="noopener noreferrer"
               className="clay-btn flex size-8.5 items-center justify-center rounded-xl text-slate-700 transition-transform hover:scale-105 hover:text-slate-950 active:scale-95"

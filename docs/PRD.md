@@ -4,7 +4,7 @@
 **Target Event:** Gnani AI — Great Indian AI Internship Challenge 2026  
 **Document Version:** 2.0.0 (Production Release)  
 **Status:** Architecture Frozen & Implementation Ready  
-**Repository:** [https://github.com/Niss54/ArogyaVani](https://github.com/Niss54/ArogyaVani)
+**Repository:** [https://github.com/sakshitiwari2051-png/ArogyaVani](https://github.com/sakshitiwari2051-png/ArogyaVani)
 
 ---
 

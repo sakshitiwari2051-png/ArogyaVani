@@ -283,7 +283,7 @@ tests\test_tools.py ......                                               [100%]
 
 ```bash
 # Clone the repository
-git clone https://github.com/Niss54/ArogyaVani.git
+git clone https://github.com/sakshitiwari2051-png/ArogyaVani.git
 cd ArogyaVani
 
 # Setup Python Backend

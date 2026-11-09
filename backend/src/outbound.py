@@ -8,7 +8,7 @@ Usage (agent must be running: `uv run src/agent.py dev`):
 Works with a SIP user too, which is the Twilio-free fallback (Linphone or any
 softphone registered to the provider named in the trunk's address):
 
-    uv run src/outbound.py niss54 --name "Ramesh"
+    uv run src/outbound.py demo_user --name "Ramesh"
 
 LiveKit wants a phone number or a bare SIP user — never a full sip: URI, since
 the host comes from the trunk. A URI is accepted here and trimmed to its user.
@@ -55,7 +55,7 @@ async def place_call(phone: str, name: str = "", reason: str = "") -> str:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Place an outbound ArogyaVani call.")
-    p.add_argument("phone", help="E.164 number (+919876543210) or SIP user (niss54)")
+    p.add_argument("phone", help="E.164 number (+919876543210) or SIP user (demo_user)")
     p.add_argument("--name", default="", help="Caller's name, if known")
     p.add_argument(
         "--reason",

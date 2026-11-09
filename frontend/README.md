@@ -122,7 +122,7 @@ frontend/
 
 ### Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Niss54/ArogyaVani&root-directory=frontend&env=LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET&project-name=arogyavani-frontend&repository-name=arogyavani-frontend)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sakshitiwari2051-png/ArogyaVani&root-directory=frontend&env=LIVEKIT_URL,LIVEKIT_API_KEY,LIVEKIT_API_SECRET&project-name=arogyavani-frontend&repository-name=arogyavani-frontend)
 
 Set these environment variables:
 

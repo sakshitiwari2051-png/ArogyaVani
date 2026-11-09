@@ -9,7 +9,7 @@
 | :--- | :--- | :---: |
 | **Live Web Platform** | [https://arogya-vani-jet.vercel.app](https://arogya-vani-jet.vercel.app) | **Live (Mumbai bom1 Edge)** |
 | **Cloud Voice Agent** | [https://arogyavani-6dbk.onrender.com](https://arogyavani-6dbk.onrender.com) | **Healthy (Docker Container)** |
-| **GitHub Repository** | [https://github.com/Niss54/ArogyaVani](https://github.com/Niss54/ArogyaVani) | **Public (157/157 Tests Pass)** |
+| **GitHub Repository** | [https://github.com/sakshitiwari2051-png/ArogyaVani](https://github.com/sakshitiwari2051-png/ArogyaVani) | **Public (157/157 Tests Pass)** |
 | **Full Documentation** | [Read Full Technical Architecture (`README.md`)](../README.md) | **Comprehensive Spec** |
 
 ---

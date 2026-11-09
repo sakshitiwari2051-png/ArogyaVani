@@ -40,6 +40,6 @@ async def test_place_call_dispatches_with_phone_metadata() -> None:
 
 def test_clean_destination_strips_sip_uri() -> None:
     # LiveKit rejects a full URI ("should be a phone number or SIP user").
-    assert outbound._clean_destination("sip:niss54@sip.linphone.org") == "niss54"
-    assert outbound._clean_destination("niss54") == "niss54"
+    assert outbound._clean_destination("sip:demo_user@sip.linphone.org") == "demo_user"
+    assert outbound._clean_destination("demo_user") == "demo_user"
     assert outbound._clean_destination("+919876543210") == "+919876543210"

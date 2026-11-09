@@ -5,7 +5,7 @@
 > **Prize Pool:** 100 Paid Internships (up to ₹1,00,000/mo) + ₹50,000 Category Prizes  
 > **Mandatory Hashtags:** `#GnaniAI` `#GreatIndianAIInternshipChallenge`  
 > **Submission Portal:** [https://www.gnani.ai/internship](https://www.gnani.ai/internship)  
-> **Project Repository:** [ArogyaVani GitHub](https://github.com/Niss54/ArogyaVani)  
+> **Project Repository:** [ArogyaVani GitHub](https://github.com/sakshitiwari2051-png/ArogyaVani)  
 
 ---
 
@@ -73,7 +73,7 @@ Problem  Setting  Triage (Gnani)  Safety Latch       Generic Savings    Handoff 
 - **Ending Graphic:**
   - ArogyaVani Logo + Gnani.ai Logo
   - *"Created for Great Indian AI Internship Challenge 2026"*
-  - GitHub: `github.com/Niss54/ArogyaVani`
+  - GitHub: `github.com/sakshitiwari2051-png/ArogyaVani`
 
 ---
 
@@ -100,7 +100,7 @@ Tested with 130/130 automated tests passing, resilient multi-tier fallback, and 
 
 Watch our 90-second demo below to see live Hindi triage, emergency escalation, and generic medicine lookup in action!
 
-GitHub Repo: https://github.com/Niss54/ArogyaVani
+GitHub Repo: https://github.com/sakshitiwari2051-png/ArogyaVani
 
 Huge thanks to Ganesh Gopalan, Ananth Nagaraj, and the entire Gnani.ai team for empowering Indian engineers with sovereign AI infrastructure! 🇮🇳
 
@@ -135,7 +135,7 @@ Works via browser WebRTC AND real telephone calls via Twilio Elastic SIP Trunkin
 
 6/6 Fully tested with 130/130 unit & live integration tests passing!
 Check out the code & architecture on GitHub:
-👉 https://github.com/Niss54/ArogyaVani
+👉 https://github.com/sakshitiwari2051-png/ArogyaVani
 
 #GnaniAI #GreatIndianAIInternshipChallenge
 ```
@@ -154,7 +154,7 @@ Use these structured answers when filling out the form on [https://www.gnani.ai/
 | **How did you integrate Gnani AI APIs?** | Implemented custom LiveKit-compatible plugins for Gnani's full stack: (1) `GnaniSTT` using `gnani-vachana` streaming WebSocket (`wss://api.vachana.ai/stt/v3/stream`) for Hindi/Hinglish recognition; (2) `GnaniTTS` using `GnaniTTSRealtimeClient` (`wss://api.vachana.ai/api/v1/tts`) with chunked `AudioEmitter` playback; and (3) `GnaniLLM` wrapping Evon v3.3 (`https://api.vachana.ai/llm/v1`) with 16 clinical triage tools and resilient multi-tier fallback. |
 | **What problem does your project solve?** | Rural healthcare delivery in India suffers from high illiteracy, linguistic barriers, and severe out-of-pocket medical debt. ArogyaVani allows anyone on a basic 2G feature phone or smartphone to speak naturally in their native language to find open health centres, calculate Jan Aushadhi generic drug savings, and safely access 108 emergency services. |
 | **Key Innovations & Differentiators** | 1. **Zero Hallucination Emergency Latch**: Deterministic regex guard delivering immediate 108 emergency guidance and human escalation.<br>2. **Bharat Vernacular Lexicon**: Recognizes rural idioms (e.g., "kaleje mein jalan", "chakkar").<br>3. **Telephony SIP Integration**: Inbound & outbound calling via Twilio Elastic SIP Trunk.<br>4. **Multi-Agent Room Handoff**: Transfers patient context to specialized clinical agents with automated SOAP note generation.<br>5. **100% Test Coverage**: 130 automated tests verifying end-to-end functionality. |
-| **GitHub Repository Link** | `https://github.com/Niss54/ArogyaVani` |
+| **GitHub Repository Link** | `https://github.com/sakshitiwari2051-png/ArogyaVani` |
 | **Live Web App (Vercel)** | `https://arogya-vani-jet.vercel.app` |
 | **Cloud Voice Agent (Render)** | `https://arogyavani-6dbk.onrender.com` |
 | **Demo Video Link** | `[Your LinkedIn or X Post URL]` |
