@@ -374,3 +374,4 @@ def seed_supabase():
 if __name__ == "__main__":
     seed_sqlite()
     seed_supabase()
+

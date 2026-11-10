@@ -83,7 +83,8 @@ function formatDate(iso: string): string {
   }
 }
 
-function humanReason(reason: string): string {
+function humanReason(reason?: string): string {
+  if (!reason) return 'General issue';
   const map: Record<string, string> = {
     escalation_created: 'Escalated to worker',
     conversation_completed: 'Triage completed',
@@ -302,17 +303,23 @@ export function CallAnalyticsDashboard() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {failures.map((f) => {
-                const total = failures.reduce((sum, x) => sum + x.cnt, 0);
-                const pct = total > 0 ? Math.round((f.cnt / total) * 100) : 0;
+              {failures.map((f, idx) => {
+                const total = failures.reduce(
+                  (sum, x) => sum + (x.cnt ?? (x as unknown as { count: number }).count ?? 0),
+                  0
+                );
+                const count = f.cnt ?? (f as unknown as { count: number }).count ?? 0;
+                const reasonKey =
+                  f.outcome_reason || (f as unknown as { reason: string }).reason || `issue-${idx}`;
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 return (
-                  <div key={f.outcome_reason} className="flex flex-col gap-0.5">
+                  <div key={reasonKey} className="flex flex-col gap-0.5">
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="font-semibold text-slate-600 dark:text-slate-300">
-                        {humanReason(f.outcome_reason)}
+                        {humanReason(reasonKey)}
                       </span>
                       <span className="font-mono font-bold text-slate-500">
-                        {f.cnt} ({pct}%)
+                        {count} ({pct}%)
                       </span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">

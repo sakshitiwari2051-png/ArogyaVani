@@ -48,6 +48,7 @@ import { CallAnalyticsDashboard } from '@/components/app/call-analytics-dashboar
 import { SettingsView } from '@/components/app/settings-view';
 import { useInputControls } from '@/hooks/agents-ui/use-agent-control-bar';
 import { cn } from '@/lib/shadcn/utils';
+import { getT } from '@/lib/i18n';
 
 export type DashState = 'ready' | 'connecting' | 'listening' | 'speaking' | 'ended';
 
@@ -420,6 +421,7 @@ export function SamarDashboard() {
     }
     return 'hi';
   });
+  const t = useMemo(() => getT(selectedLang), [selectedLang]);
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [livePing, setLivePing] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -795,7 +797,28 @@ export function SamarDashboard() {
     }
   }, [isConnected, hasStartedOnce, displayedMessages.length, agentState, vaState]);
 
-  const stateMeta = STATE_CONFIG[dashState];
+  const stateMeta = useMemo(() => {
+    const base = STATE_CONFIG[dashState];
+    let badgeText = base.badgeText;
+    let statusHint = base.statusHint;
+    if (dashState === 'ready') {
+      badgeText = t.ready;
+      statusHint = t.readyHint;
+    } else if (dashState === 'connecting') {
+      badgeText = t.connecting;
+      statusHint = t.connectingHint;
+    } else if (dashState === 'listening') {
+      badgeText = t.listening;
+      statusHint = t.listeningHint;
+    } else if (dashState === 'speaking') {
+      badgeText = t.speaking;
+      statusHint = t.speakingHint;
+    } else if (dashState === 'ended') {
+      badgeText = t.ended;
+      statusHint = t.endedHint;
+    }
+    return { ...base, badgeText, statusHint };
+  }, [dashState, t]);
 
   return (
     <div className="flex h-screen w-full gap-3 overflow-hidden bg-gradient-to-br from-[#E8EEF5] via-[#EDF2F7] to-[#DFE7F0] p-3 font-sans text-slate-800 transition-colors duration-200 selection:bg-[#00F2FE] selection:text-slate-950 md:p-4 dark:from-[#070c14] dark:via-[#090f18] dark:to-[#05080e] dark:text-slate-100">
@@ -915,11 +938,11 @@ export function SamarDashboard() {
           {/* 1. New Chat Button */}
           <NavItem
             icon={Plus}
-            label="NEW CHAT"
+            label={t.newChat}
             variant="primary"
             isSidebarOpen={isSidebarOpen}
             onClick={handleNewChat}
-            title={isSidebarOpen ? 'Start a new chat session' : 'New Chat'}
+            title={isSidebarOpen ? t.newChat : 'New Chat'}
             className="mt-3"
           />
 
@@ -929,7 +952,7 @@ export function SamarDashboard() {
             <div className={cn('flex flex-col gap-1', isSidebarOpen && 'w-full')}>
               <NavItem
                 icon={MessageSquare}
-                label="CHATS"
+                label={t.chats}
                 active={activeNav === 'chats'}
                 isSidebarOpen={isSidebarOpen}
                 onClick={() => {
@@ -967,7 +990,7 @@ export function SamarDashboard() {
                   >
                     {filteredSessions.length === 0 ? (
                       <div className="py-3 text-center font-mono text-[10px] font-bold text-slate-400">
-                        {searchQuery ? 'NO MATCHING CHATS' : 'NO RECENT CHATS YET'}
+                        {searchQuery ? 'NO MATCHING CHATS' : t.noRecentChats}
                       </div>
                     ) : (
                       filteredSessions.map((chat) => {
@@ -1022,21 +1045,21 @@ export function SamarDashboard() {
             {/* 3. Dashboard */}
             <NavItem
               icon={Activity}
-              label="DASHBOARD"
+              label={t.dashboard}
               active={activeNav === 'dashboard'}
               isSidebarOpen={isSidebarOpen}
               onClick={() => setActiveNav('dashboard')}
-              title="Dashboard"
+              title={t.dashboard}
             />
 
             {/* 4. Settings */}
             <NavItem
               icon={Settings}
-              label="SETTINGS"
+              label={t.settings}
               active={activeNav === 'settings'}
               isSidebarOpen={isSidebarOpen}
               onClick={() => setActiveNav('settings')}
-              title="Settings"
+              title={t.settings}
             />
           </div>
         </div>
@@ -1073,12 +1096,12 @@ export function SamarDashboard() {
               <span className="font-mono text-slate-300 dark:text-slate-600">/</span>
 
               {activeNav === 'dashboard' && (
-                <span className="font-bold text-slate-900 dark:text-slate-100">Dashboard</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{t.dashboard}</span>
               )}
 
               {activeNav === 'new_chat' && (
                 <span className="font-bold text-slate-900 dark:text-slate-100">
-                  New Consultation
+                  {t.newConsultation}
                 </span>
               )}
 
@@ -1091,7 +1114,7 @@ export function SamarDashboard() {
                     }}
                     className="transition-colors hover:text-slate-900 dark:hover:text-white"
                   >
-                    Chats
+                    {t.chats}
                   </button>
                   {activeSession && (
                     <>
@@ -1105,7 +1128,7 @@ export function SamarDashboard() {
               )}
 
               {activeNav === 'settings' && (
-                <span className="font-bold text-slate-900 dark:text-slate-100">Settings</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{t.settings}</span>
               )}
             </nav>
           </div>
@@ -1125,7 +1148,7 @@ export function SamarDashboard() {
               ) : (
                 <Trash2 className="size-3.5 stroke-[2.2]" />
               )}
-              <span>Forget Me</span>
+              <span>{t.forgetMe}</span>
             </button>
 
             {/* Language selector — add entries to LANGUAGES to support more */}
@@ -1212,7 +1235,7 @@ export function SamarDashboard() {
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
               </span>
-              <span>Cloud Agent</span>
+              <span>{t.cloudAgent}</span>
             </a>
 
             {/* 3.5 Real Phone Call (Cellular PSTN) */}
@@ -1222,7 +1245,7 @@ export function SamarDashboard() {
               title="Get a real phone call from ArogyaVani on your mobile"
             >
               <Phone className="size-3.5 stroke-[2.5] text-sky-600 dark:text-sky-400" />
-              <span>Call My Phone</span>
+              <span>{t.callMyPhone}</span>
             </button>
 
             {/* 4. View GitHub */}
@@ -1649,9 +1672,9 @@ export function SamarDashboard() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <div className="mr-1 flex items-center gap-1 text-[10px] font-bold text-slate-500">
                       <Sparkles className="size-3 text-sky-500" />
-                      <span>{selectedLang === 'hi' ? 'सुझाव:' : 'SUGGEST:'}</span>
+                      <span>{t.suggestPrefix}</span>
                     </div>
-                    {QUICK_SUGGESTIONS[selectedLang].map((chip: string, idx: number) => (
+                    {(QUICK_SUGGESTIONS[selectedLang] || QUICK_SUGGESTIONS['hi'] || []).map((chip: string, idx: number) => (
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(chip)}
@@ -1692,11 +1715,7 @@ export function SamarDashboard() {
                         value={chatInputText}
                         onChange={(e) => setChatInputText(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={
-                          selectedLang === 'hi'
-                            ? 'अपनी बीमारी या सवाल यहाँ लिखें... (Enter दबाएं)'
-                            : 'Type your symptom or question... (Press Enter to send)'
-                        }
+                        placeholder={t.inputPlaceholder}
                         className="w-full bg-transparent text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
                       />
                     </div>
@@ -1723,7 +1742,7 @@ export function SamarDashboard() {
                         title={dashState === 'ended' ? 'Resume session' : 'Start consultation'}
                       >
                         <Phone className="size-3.5 stroke-[2.5]" />
-                        <span className="hidden sm:inline">START</span>
+                        <span className="hidden sm:inline">{t.startCall}</span>
                       </button>
                     ) : (
                       <button
@@ -1732,7 +1751,7 @@ export function SamarDashboard() {
                         title="End current call"
                       >
                         <PhoneOff className="size-3.5 stroke-[2.5]" />
-                        <span className="hidden sm:inline">END</span>
+                        <span className="hidden sm:inline">{t.endCall}</span>
                       </button>
                     )}
                   </div>
@@ -1766,21 +1785,21 @@ export function SamarDashboard() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
-                    Receive a Real Phone Call
+                    {t.callPhoneTitle}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    ArogyaVani PSTN / 2G Cellular Telephony
+                    {t.callPhoneSubtitle}
                   </p>
                 </div>
               </div>
 
               <p className="mt-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                Enter your mobile number below. Our sovereign AI helpline will place a real cellular call to your phone from <span className="font-mono font-bold text-sky-600 dark:text-sky-400">+1 (737) 250-8034</span>.
+                {t.callPhoneDesc}
               </p>
 
               <div className="mt-4">
                 <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider dark:text-slate-300">
-                  Mobile Number (with country code)
+                  {t.callPhoneInputLabel}
                 </label>
                 <input
                   type="tel"
@@ -1790,7 +1809,7 @@ export function SamarDashboard() {
                   className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm font-bold text-slate-900 focus:border-sky-500 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
                 />
                 <p className="mt-1 text-[10px] text-slate-400">
-                  Example: +918840301998 or 10-digit mobile number.
+                  {t.callPhoneExample}
                 </p>
               </div>
 
@@ -1800,7 +1819,7 @@ export function SamarDashboard() {
                   onClick={() => setIsDialModalOpen(false)}
                   className="clay-btn flex-1 py-2 text-xs font-bold text-slate-700 dark:text-slate-300"
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
                 <button
                   type="button"
@@ -1811,12 +1830,12 @@ export function SamarDashboard() {
                   {isDialing ? (
                     <>
                       <Loader2 className="size-3.5 animate-spin" />
-                      <span>Calling...</span>
+                      <span>{t.calling}</span>
                     </>
                   ) : (
                     <>
                       <Phone className="size-3.5 stroke-[2.5]" />
-                      <span>Ring My Phone</span>
+                      <span>{t.ringPhone}</span>
                     </>
                   )}
                 </button>

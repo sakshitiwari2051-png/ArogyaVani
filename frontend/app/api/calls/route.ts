@@ -136,8 +136,13 @@ export async function GET(req: Request) {
           }
         }
         const failure_breakdown = Array.from(failureMap.entries())
-          .map(([reason, count]) => ({ reason, count }))
-          .sort((a, b) => b.count - a.count);
+          .map(([outcome_reason, cnt]) => ({
+            outcome_reason,
+            cnt,
+            reason: outcome_reason,
+            count: cnt,
+          }))
+          .sort((a, b) => b.cnt - a.cnt);
 
         return NextResponse.json(
           {

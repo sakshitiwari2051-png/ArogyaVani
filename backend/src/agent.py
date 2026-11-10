@@ -102,6 +102,32 @@ GREETING = (
     "Are you calling about yourself or for someone else?"
 )
 
+GREETINGS_BY_LANG: dict[str, str] = {
+    "hi": "नमस्ते, मैं स्वास्थ्य केंद्र से आरोग्यवाणी बोल रही हूँ। क्या आप अपने लिए सलाह चाहते हैं या किसी अन्य व्यक्ति के लिए?",
+    "en": "Namaste, this is ArogyaVani from the health centre. Are you calling about yourself or for someone else?",
+    "kn": "ನಮಸ್ಕಾರ, ನಾನು ಪ್ರಾಥಮಿಕ ಆರೋಗ್ಯ ಕೇಂದ್ರದಿಂದ ಆರೋಗ್ಯವಾಣಿ. ನೀವು ನಿಮ್ಮ ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತಿದ್ದೀರಾ ಅಥವಾ ಬೇರೆಯವರಿಗಾಗಿಯೇ?",
+    "ta": "வணக்கம், நான் ஆரம்ப சுகாதார நிலையத்திலிருந்து ஆரோக்கியவாணி. நீங்கள் உங்களுக்காக அழைக்கிறீர்களா அல்லது வேறு யாருக்காகவா?",
+    "te": "నమస్కారం, నేను ఆరోగ్య కేంద్రం నుండి ఆరోగ్యవాణిని. మీరు మీ గురించి మాట్లాడుతున్నారా లేదా ఇతరుల కోసమా?",
+    "mr": "नमस्ते, मी प्राथमिक आरोग्य केंद्रातून आरोग्यवाणी बोलते आहे. आपण स्वतःसाठी कॉल करत आहात की दुसऱ्या कोणासाठी?",
+    "bn": "নমস্কার, আমি স্বাস্থ্য কেন্দ্র থেকে আরোগ্যবাণী বলছি। আপনি কি নিজের জন্য পরামর্শ চান নাকি অন্য কারও জন্য?",
+    "gu": "નમસ્તે, હું આરોગ્ય કેન્દ્રમાંથી આરોગ્યવાણી બોલું છું. તમે તમારા માટે કૉલ કરી રહ્યા છો કે બીજા કોઈ માટે?",
+    "ml": "നമസ്കാരം, ഞാൻ ആരോഗ്യ കേന്ദ്രത്തിൽ നിന്നുള്ള ആരോഗ്യവാണിയാണ്. നിങ്ങൾ നിങ്ങൾക്കായി വിളിക്കുകയാണോ അതോ മറ്റാർക്കെങ്കിലുമായോ?",
+    "pa": "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ, ਮੈਂ ਸਿਹਤ ਕੇਂਦਰ ਤੋਂ ਅਰੋਗਿਆਵਾਣੀ ਬੋਲ ਰਹੀ ਹਾਂ। ਕੀ ਤੁਸੀਂ ਆਪਣੇ ਲਈ ਕਾਲ ਕਰ ਰਹੇ ਹੋ ਜਾਂ ਕਿਸੇ ਹੋਰ ਲਈ?",
+}
+
+LANG_SWITCH_NOTICES: dict[str, str] = {
+    "hi": "भाषा बदलकर हिन्दी कर दी गई है। बताइए, मैं आपकी क्या सहायता करूँ?",
+    "en": "Language switched to English. How can I assist you today?",
+    "kn": "ಭಾಷೆಯನ್ನು ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ. ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+    "ta": "மொழி தமிழுக்கு மாற்றப்பட்டது. நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?",
+    "te": "భాష తెలుగులోకి మార్చబడింది. నేను మీకు ఎలా సహాయపడగలను?",
+    "mr": "भाषा बदलून मराठी करण्यात आली आहे. मी आपल्याला कशी मदत करू शकते?",
+    "bn": "ভাষা পরিবর্তন করে বাংলা করা হয়েছে। আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
+    "gu": "ભાષા બદલીને ગુજરાતી કરવામાં આવી છે. હું તમને કેવી રીતે મદદ કરી શકું?",
+    "ml": "ഭാഷ മലയാളത്തിലേക്ക് മാറ്റി. ഞാൻ നിങ്ങളെ എങ്ങനെ സഹായിക്കണം?",
+    "pa": "ਭਾਸ਼ਾ ਬਦਲ ਕੇ ਪੰਜਾਬੀ ਕਰ ਦਿੱਤੀ ਗਈ ਹੈ। ਮੈਂ ਤੁਹਾਡੀ ਕੀ ਮਦਦ ਕਰ ਸਕਦੀ ਹਾਂ?",
+}
+
 
 def _outbound_greeting(name: str, reason: str) -> str:
     """Who is calling, why, and how to stop it — in the first two sentences."""
@@ -1092,7 +1118,14 @@ async def my_agent(ctx: JobContext):
                     "Real-time UI language switch received over LiveKit data channel: %s",
                     target_lang,
                 )
+                assistant.tts_locale = INDIC_LOCALES.get(target_lang, "hi-IN")
                 _set_locale(target_lang)
+                ack_msg = LANG_SWITCH_NOTICES.get(target_lang)
+                if ack_msg:
+                    _lang_task = asyncio.create_task(
+                        session.say(ack_msg, allow_interruptions=True)
+                    )
+                    _ = _lang_task
         except Exception as e:
             logger.debug("Non-language data channel packet received: %s", e)
 
@@ -1362,10 +1395,13 @@ async def my_agent(ctx: JobContext):
             else:
                 greeting = f"नमस्ते {name} जी, स्वास्थ्य केंद्र में आपका फिर से स्वागत है। आज मैं आपकी क्या सहायता कर सकती हूँ?"
     else:
-        greeting = GREETING
+        req_lang = (requested_caller_lang or "hi").lower().strip()
+        greeting = GREETINGS_BY_LANG.get(req_lang, GREETINGS_BY_LANG.get("hi", GREETING))
 
-    # Match the voice locale to the greeting only if no explicit caller language was requested
-    if not requested_caller_lang:
+    # Match the voice locale to the greeting
+    if requested_caller_lang:
+        _set_locale(requested_caller_lang)
+    else:
         _set_locale("hi" if re.search(r"[ऀ-ॿ]", greeting) else "en")
 
     # Greet only after the caller is actually subscribed, so the opening line
