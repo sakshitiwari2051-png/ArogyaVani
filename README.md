@@ -36,12 +36,41 @@
 
 </div>
 
+---
+
+## 📸 Screenshots
+
+<table style="width:100%">
+<tr>
+<td width="50%" valign="top">
+  <img src="assets/readme/session-dark.png" alt="Session in Hindi, dark theme" />
+  <p align="center"><b>Session · Hindi, idle</b><br/>Agent state, live/ended pill, connection quality, and Hindi starter prompts. Forget Me sits in the header, not buried in settings.</p>
+</td>
+<td width="50%" valign="top">
+  <img src="assets/readme/session-facility-card.png" alt="Live call - pushed facility card" />
+  <p align="center"><b>Live call · pushed facility card</b><br/>The agent speaks the answer <i>and</i> pushes structured data to the room — timings, 24x7 status, free services, map, Directions, Call 108.</p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+  <img src="assets/readme/session-light.png" alt="Session light theme" />
+  <p align="center"><b>Session · light theme</b><br/>Same session, collapsed rail. Both themes ship; the orb reacts to agent audio in either.</p>
+</td>
+<td width="50%" valign="top">
+  <img src="assets/readme/call-analytics.png" alt="Call analytics dashboard" />
+  <p align="center"><b>Call analytics</b><br/>Outcomes, failure breakdown by reason, and a per-call table with channel, duration and turn counts.</p>
+</td>
+</tr>
+</table>
+
+---
+
+## 📊 Measured Results
+
+Everything below came out of this project's own logs and live telemetry, not a synthetic vendor benchmark:
+
 <div align="center">
-
-<img src="assets/readme/session-facility-card.png" alt="ArogyaVani live session: voice agent speaking in Hindi, live transcript, and pushed health facility card with emergency 108 triage" width="880"/>
-
-*A live ArogyaVani consultation: A rural caller asks in Hindi for emergency triage and nearest clinic. The agent answers via Gnani Timbre voice synthesis, pushes structured facility telemetry with honest provenance disclaimers, and maintains continuous clinical guardrails.*
-
+  <img src="assets/readme/latency-log.png" alt="Voice pipeline latency telemetry logs" width="880" />
 </div>
 
 ---
