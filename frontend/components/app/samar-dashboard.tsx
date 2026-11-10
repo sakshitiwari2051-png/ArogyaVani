@@ -419,7 +419,7 @@ export function SamarDashboard() {
       const match = document.cookie.match(/arogyavani_lang=([^;]+)/);
       if (match) return match[1];
     }
-    return 'hi';
+    return 'en';
   });
   const t = useMemo(() => getT(selectedLang), [selectedLang]);
   const [isLangOpen, setIsLangOpen] = useState(false);

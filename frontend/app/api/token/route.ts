@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       body?.language ||
       new URL(req.url, 'http://localhost').searchParams.get('lang') ||
       (langCookieMatch ? langCookieMatch[1] : null) ||
-      'hi';
+      'en';
 
     const locCookieMatch = cookieHeader.match(/arogyavani_location=([^;]+)/);
     let userLoc = null;

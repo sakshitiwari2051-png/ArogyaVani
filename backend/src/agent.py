@@ -58,12 +58,12 @@ except Exception as _bhash_err:
 logger = logging.getLogger("agent")
 
 # Track: Health Access (#VoiceForBharat) — Day 5 Real Tools & Facility Locator
-SYSTEM_PROMPT = """You are ArogyaVani, a female voice assistant for Health Centres in India.
+SYSTEM_PROMPT = """You are ArogyaVani, an AI voice health assistant for Bharat.
 
 LANGUAGE (check before every reply):
 - Reply in the language of the caller's LAST message. Never switch on your own.
 - English caller -> plain Indian English ONLY. Zero Hindi words: no "theek hai", "haan", "ji", "aap", "dawai", "aapka din shubh ho". Use "okay", "yes", "medicine".
-- Hindi/Hinglish caller -> Hindi in Devanagari. Never mix both languages in one reply.
+- Hindi/Hinglish caller -> Hindi in Devanagari. Never mix both languages in one reply. Never use "स्वास्थ्य केंद्र" or "सलाह चाहते हैं" in greetings. Greet politely as "नमस्ते! मैं आरोग्यवाणी हूँ, आज मैं आपकी क्या मदद कर सकती हूँ?".
 - Regional Indic callers (Kannada, Tamil, Telugu, Marathi, Bengali, Malayalam, Gujarati, Odia, Punjabi, Assamese) -> Use `translate_health_message` with Bhashini to translate your response or instructions into their preferred language.
 
 MEDICAL EMERGENCY (overrides everything else). Heart attack, chest pain, stroke, seizure, unconscious, not breathing, heavy bleeding, poisoning/overdose, suicidal talk:
@@ -98,21 +98,21 @@ GUARDRAILS & STYLE (STRICT CLINICAL PROTOCOL):
 - Never output raw function tags or JSON in your dialogue."""
 
 GREETING = (
-    "Namaste, this is ArogyaVani from the health centre. "
-    "Are you calling about yourself or for someone else?"
+    "Namaste! I am ArogyaVani, your AI health assistant. "
+    "How can I assist you today?"
 )
 
 GREETINGS_BY_LANG: dict[str, str] = {
-    "hi": "नमस्ते, मैं स्वास्थ्य केंद्र से आरोग्यवाणी बोल रही हूँ। क्या आप अपने लिए सलाह चाहते हैं या किसी अन्य व्यक्ति के लिए?",
-    "en": "Namaste, this is ArogyaVani from the health centre. Are you calling about yourself or for someone else?",
-    "kn": "ನಮಸ್ಕಾರ, ನಾನು ಪ್ರಾಥಮಿಕ ಆರೋಗ್ಯ ಕೇಂದ್ರದಿಂದ ಆರೋಗ್ಯವಾಣಿ. ನೀವು ನಿಮ್ಮ ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತಿದ್ದೀರಾ ಅಥವಾ ಬೇರೆಯವರಿಗಾಗಿಯೇ?",
-    "ta": "வணக்கம், நான் ஆரம்ப சுகாதார நிலையத்திலிருந்து ஆரோக்கியவாணி. நீங்கள் உங்களுக்காக அழைக்கிறீர்களா அல்லது வேறு யாருக்காகவா?",
-    "te": "నమస్కారం, నేను ఆరోగ్య కేంద్రం నుండి ఆరోగ్యవాణిని. మీరు మీ గురించి మాట్లాడుతున్నారా లేదా ఇతరుల కోసమా?",
-    "mr": "नमस्ते, मी प्राथमिक आरोग्य केंद्रातून आरोग्यवाणी बोलते आहे. आपण स्वतःसाठी कॉल करत आहात की दुसऱ्या कोणासाठी?",
-    "bn": "নমস্কার, আমি স্বাস্থ্য কেন্দ্র থেকে আরোগ্যবাণী বলছি। আপনি কি নিজের জন্য পরামর্শ চান নাকি অন্য কারও জন্য?",
-    "gu": "નમસ્તે, હું આરોગ્ય કેન્દ્રમાંથી આરોગ્યવાણી બોલું છું. તમે તમારા માટે કૉલ કરી રહ્યા છો કે બીજા કોઈ માટે?",
-    "ml": "നമസ്കാരം, ഞാൻ ആരോഗ്യ കേന്ദ്രത്തിൽ നിന്നുള്ള ആരോഗ്യവാണിയാണ്. നിങ്ങൾ നിങ്ങൾക്കായി വിളിക്കുകയാണോ അതോ മറ്റാർക്കെങ്കിലുമായോ?",
-    "pa": "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ, ਮੈਂ ਸਿਹਤ ਕੇਂਦਰ ਤੋਂ ਅਰੋਗਿਆਵਾਣੀ ਬੋਲ ਰਹੀ ਹਾਂ। ਕੀ ਤੁਸੀਂ ਆਪਣੇ ਲਈ ਕਾਲ ਕਰ ਰਹੇ ਹੋ ਜਾਂ ਕਿਸੇ ਹੋਰ ਲਈ?",
+    "hi": "नमस्ते! मैं आरोग्यवाणी बोल रही हूँ। आज मैं आपकी क्या सहायता कर सकती हूँ?",
+    "en": "Namaste! I am ArogyaVani, your AI health assistant. How can I assist you today?",
+    "kn": "ನಮಸ್ಕಾರ! ನಾನು ಆರೋಗ್ಯವಾಣಿ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+    "ta": "வணக்கம்! நான் ஆரோக்கியவாணி. இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+    "te": "నమస్కారం! నేను ఆరోగ్యవాణిని. ఈరోజు నేను మీకు ఎలా సహాయపడగలను?",
+    "mr": "नमस्ते! मी आरोग्यवाणी आहे. मी आज आपल्याला कशी मदत करू शकते?",
+    "bn": "নমস্কার! আমি আরোগ্যবাণী। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
+    "gu": "નમસ્તે! હું આરોગ્યવાણી છું. આજે હું તમને કેવી રીતે મદદ કરી શકું?",
+    "ml": "നമസ്കാരം! ഞാൻ ആരോഗ്യവാണിയാണ്. ഇന്ന് ഞാൻ നിങ്ങളെ എങ്ങനെ സഹായിക്കണം?",
+    "pa": "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਅਰੋਗਿਆਵਾਣੀ ਹਾਂ। ਅੱਜ ਮੈਂ ਤੁਹਾਡੀ ਕੀ ਮਦਦ ਕਰ ਸਕਦੀ ਹਾਂ?",
 }
 
 LANG_SWITCH_NOTICES: dict[str, str] = {
@@ -1462,23 +1462,23 @@ async def my_agent(ctx: JobContext):
 
         if lang == "en":
             if last_outcome:
-                greeting = f"Namaste {name}, welcome back to the health centre. Last time we spoke about {last_outcome}. How are you feeling today?"
+                greeting = f"Namaste {name}, welcome back to ArogyaVani. Last time we spoke about {last_outcome}. How are you feeling today?"
             else:
-                greeting = f"Namaste {name}, welcome back to the health centre. How can I assist you today?"
+                greeting = f"Namaste {name}, welcome back to ArogyaVani. How can I assist you today?"
         else:
             if last_outcome:
-                greeting = f"नमस्ते {name} जी, स्वास्थ्य केंद्र में आपका फिर से स्वागत है। पिछली बार हमने {last_outcome} के बारे में बात की थी। आज आप कैसा महसूस कर रहे हैं?"
+                greeting = f"नमस्ते {name} जी, आरोग्यवाणी में आपका फिर से स्वागत है। पिछली बार हमने {last_outcome} के बारे में बात की थी। आज आप कैसा महसूस कर रहे हैं?"
             else:
-                greeting = f"नमस्ते {name} जी, स्वास्थ्य केंद्र में आपका फिर से स्वागत है। आज मैं आपकी क्या सहायता कर सकती हूँ?"
+                greeting = f"नमस्ते {name} जी, आरोग्यवाणी में आपका फिर से स्वागत है। आज मैं आपकी क्या सहायता कर सकती हूँ?"
     else:
-        req_lang = (requested_caller_lang or "hi").lower().strip()
-        greeting = GREETINGS_BY_LANG.get(req_lang, GREETINGS_BY_LANG.get("hi", GREETING))
+        req_lang = (requested_caller_lang or initial_lang or "en").lower().strip()
+        greeting = GREETINGS_BY_LANG.get(req_lang, GREETINGS_BY_LANG.get("en", GREETING))
 
     # Match the voice locale to the greeting
     if requested_caller_lang:
         _set_locale(requested_caller_lang, explicit=True)
     else:
-        _set_locale("hi" if re.search(r"[ऀ-ॿ]", greeting) else "en")
+        _set_locale(initial_lang or ("hi" if re.search(r"[ऀ-ॿ]", greeting) else "en"), explicit=True)
 
     # Greet only after the caller is actually subscribed, so the opening line
     # isn't played to an empty room.
