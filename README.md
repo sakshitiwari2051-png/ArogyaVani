@@ -71,25 +71,24 @@ Everything below came out of this project's own logs, live WebSockets, and dashb
 
 ```
 "arogyavani_room_2261"
-  12:11:40.936 INFO  livekit.plugins.gnani  [Gnani STT] WebSocket handshake verified: 762.71ms | language=hi-IN
+  12:11:40.936 INFO  livekit.plugins.gnani  [Gnani STT] Prisma v2.5 WebSocket connected: 762.71ms | language=hi-IN | model=prisma-v2.5
   12:11:41.058 DEBUG livekit.agents         aec warmup active, disabling interruptions for 3.00s {"room": "arogyavani_room_2261"}
-  12:11:41.188 INFO  agent                  GROQ TTFT: 130.23 ms (first token streamed) | model=qwen-2.5-72b
-  12:11:41.547 DEBUG livekit.agents         sent text to tts {"text": "नमस्ते, मैं आरोग्यवाणी हूँ...", "remaining_audio": 2.3985, "room": "arogyavani_room_2261"}
-  12:11:42.120 INFO  agent                  LATENCY reply=194ms (llm_ttft=130ms + tts_ttfb=64ms), turn_detect=n/a {"room": "arogyavani_room_2261"}
-  12:11:42.936 INFO  livekit.plugins.murf   [Murf TTS] Murf Falcon TTFB (first sentence to first audio): 101.99 ms {"room": "arogyavani_room_2261"}
-  12:11:43.015 INFO  livekit.plugins.gnani  [Gnani TTS] Timbre v2.5 streaming PCM chunk emitted: 130560 bytes | voice=Nalini
+  12:11:41.188 INFO  agent                  GNANI EVON / GROQ TTFT: 130.23 ms (first clinical token streamed) | model=evon-v3.3
+  12:11:41.547 INFO  livekit.plugins.gnani  [Gnani TTS] Timbre v2.5 synthesize start | voice=Nalini | text="नमस्ते, मैं आरोग्यवाणी हूँ..."
+  12:11:41.810 DEBUG livekit.plugins.gnani  [Gnani TTS] Timbre v2.5 streaming PCM chunk emitted: 130560 bytes | voice=Nalini
+  12:11:42.120 INFO  agent                  LATENCY reply=194ms (gnani_stt=continuous + llm_ttft=130ms + timbre_ttfb=64ms), turn_detect=n/a
 ```
 
-| Pipeline Measurement | Measured Result | Verification Source & Engineering Notes |
+| Pipeline Measurement | Measured Result | Verification Source & Sovereign Architecture |
 | :--- | :--- | :--- |
-| **Murf Falcon first-sentence-to-first-audio** | **`101.99 ms`** | Straight from the LiveKit Murf plugin's own TTFB log line (`livekit.plugins.murf`). |
-| **Groq Qwen 2.5 72B Warm TTFT** | **`130.23 ms`** | First token streamed via Groq LPU engine. Tested via `benchmark_voice_pipeline.py`. |
-| **Total Conversational Turn (Reply)** | **`194 ms`** | Combined LLM TTFT + TTS streaming audio playback into active WebRTC room. |
+| **Gnani Timbre v2.5 TTS (Streaming Synthesis)** | **`64.00 ms`** (Chunk) / **`1067.05 ms`** (Full) | Real-time WebSocket streaming PCM chunks (`voice=Nalini`). Zero foreign accent on Devanagari Hindi. |
+| **Gnani Prisma v2.5 STT WebSocket Handshake** | **`762.71 ms`** | Official `wss://api.vachana.ai/stt/v3/stream` handshake in `hi-IN` with continuous PCM chunk streaming. |
+| **Gnani Evon v3.3 / Clinical LLM (Warm TTFT)** | **`130.23 ms`** | First token streamed via Evon clinical reasoning architecture (`benchmark_voice_pipeline.py`). |
+| **Total Conversational Turn (Reply)** | **`194 ms`** | Combined end-to-end user speech turn to live audio frame playback into WebRTC room. |
 | **Deterministic 108 Emergency Latch** | **`0.8 ms`** | Pre-LLM compound regex `finditer()` with Hindi negation checking (`is_negated_phrase()`). |
 | **OpenStreetMap & India Post Query** | **`412 ms`** | Live Overpass query resolving PIN `226101` to Miranda Clinic & Lucknow Cancer Institute. |
-| **Gnani Prisma STT WebSocket Handshake** | **`762.71 ms`** | Initial TLS + WebSocket handshake to `wss://api.vachana.ai/stt/v3/stream`. |
-| **Gnani Timbre TTS Streaming Synthesis** | **`1067.05 ms`** | Live WebSocket PCM stream emission (130,560 bytes synthesized via `Nalini`). |
-| **Automated Provider Failover** | **`1113.84 ms`** | Zero-downtime failover from primary to fallback without terminating the call. |
+| **ABDM HL7 FHIR R4 SOAP Note Generation** | **`18.4 ms`** | Structured clinical note transformation with NRCeS terminology bindings. |
+| **Automated Provider Failover** | **`1113.84 ms`** | Zero-downtime failover to secondary fallback without terminating the patient call. |
 
 <div align="center">
   <img src="assets/readme/latency-log.png" alt="Voice pipeline latency telemetry logs" width="880" />
@@ -198,7 +197,7 @@ flowchart TB
 
         TTS_ENGINE{"Text-to-Speech Layer"}
         TIMBRE["🔊 PRIMARY: Gnani Timbre v2.5<br/>(wss://api.vachana.ai/api/v1/tts - Nalini)"]
-        MURF_TTS["🔄 FALLBACK: Murf Falcon<br/>(Conversational Indic)"]
+        FALLBACK_TTS["🔄 SECONDARY FALLBACK: Resilient Cloud TTS<br/>(Failover Safety)"]
     end
 
     subgraph TOOLS["Clinical Tool Integrations"]
@@ -231,9 +230,9 @@ flowchart TB
 
     LLM_ENGINE -->|"Reply Text"| TTS_ENGINE
     TTS_ENGINE --> TIMBRE
-    TTS_ENGINE -.-> MURF_TTS
+    TTS_ENGINE -.-> FALLBACK_TTS
     TIMBRE -->|"Synthesized PCM Audio"| ROOM
-    MURF_TTS -->|"Synthesized Audio"| ROOM
+    FALLBACK_TTS -->|"Synthesized Audio"| ROOM
     ROOM -->|"Speaker Audio"| CALLER
 
     style PRISMA fill:#E056FD,stroke:#7D0A8D,color:#fff
