@@ -43,7 +43,7 @@
 <table style="width:100%">
 <tr>
 <td width="50%" valign="top">
-  <img src="assets/readme/session-dark.png" alt="Session in Hindi, dark theme" />
+  <img src="assets/readme/session-dark.png" alt="ArogyaVani Session in Hindi, dark theme" />
   <p align="center"><b>Session · Hindi, idle</b><br/>Agent state, live/ended pill, connection quality, and Hindi starter prompts. Forget Me sits in the header, not buried in settings.</p>
 </td>
 <td width="50%" valign="top">
@@ -52,11 +52,7 @@
 </td>
 </tr>
 <tr>
-<td width="50%" valign="top">
-  <img src="assets/readme/session-light.png" alt="Session light theme" />
-  <p align="center"><b>Session · light theme</b><br/>Same session, collapsed rail. Both themes ship; the orb reacts to agent audio in either.</p>
-</td>
-<td width="50%" valign="top">
+<td colspan="2" width="100%" valign="top">
   <img src="assets/readme/call-analytics.png" alt="Call analytics dashboard" />
   <p align="center"><b>Call analytics</b><br/>Outcomes, failure breakdown by reason, and a per-call table with channel, duration and turn counts.</p>
 </td>
