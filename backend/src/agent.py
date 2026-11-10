@@ -32,8 +32,10 @@ from livekit.agents import (
 )
 from livekit.agents.llm import FallbackAdapter
 from livekit.plugins import (
+    deepgram,
     google,
     groq,
+    murf,
     noise_cancellation,
     silero,
 )
@@ -42,8 +44,6 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 import db
 import facilities
 import gnani_llm
-import gnani_stt
-import gnani_tts
 import rag
 from outbound import place_call as _place_call
 
@@ -409,6 +409,8 @@ class Assistant(Agent):
         self.agent_turns: int = 0
         # Language mirroring + emergency latch (set from user_input_transcribed)
         self.tts_locale: str = "en-IN"
+        self.current_lang: str = "en"
+        self.explicit_user_language: str = ""
         self.emergency_flag: bool = False
         self.redflag_flag: bool = False
 
@@ -954,27 +956,29 @@ async def my_agent(ctx: JobContext):
         "room": ctx.room.name,
     }
 
-    # Set up a voice AI pipeline using Murf Falcon, Gemini, Deepgram, and the LiveKit turn detector
+    # Determine initial caller language preference from connected participant metadata if available
+    initial_lang = "en"
+    for p in ctx.room.remote_participants.values():
+        if p.metadata:
+            try:
+                p_meta = json.loads(p.metadata)
+                if p_meta.get("language"):
+                    initial_lang = p_meta["language"].lower().strip()
+                    break
+            except Exception:
+                pass
+
+    stt_lang = "en-IN" if initial_lang in ("en", "english") else "multi"
+    murf_voice = "en-IN-anisha" if initial_lang in ("en", "english") else "hi-IN-swara"
+
+    # Set up a voice AI pipeline using Murf Falcon, Groq / Gemini, and Deepgram Nova-3
     session = AgentSession(
-        # Speech-to-text (STT) is your agent's ears, turning the user's speech into text that the LLM can understand
-        # See all available models at https://docs.livekit.io/agents/models/stt/
-        # language="multi" handles Hindi/English code-switching in one sentence,
-        # which is how callers actually talk. Without it Deepgram defaults to
-        # en-US and mangles Indian-accented speech ("WhiteHat", "harder writing").
-        # Speech-to-text (STT): Gnani Prisma sovereign Indic STT as primary
-        # Supports Hindi, English, Tamil, Telugu, Kannada, Bengali, Gujarati, Marathi, etc.
-        stt=gnani_stt.GnaniSTT(language="multi"),
-        # A Large Language Model (LLM) is your agent's brain:
-        # 1. Gnani Evon v3.3 (30B MoE Sovereign Indic LLM) as PRIMARY
-        # 2. Groq Qwen 27B as ultra-fast fallback
-        # 3. Google Gemini Flash as secondary fallback
+        stt=deepgram.STT(
+            model="nova-3",
+            language=stt_lang,
+        ),
         llm=FallbackAdapter(
             [
-                gnani_llm.GnaniLLM(
-                    model="evon-v3.3",
-                    temperature=0.2,
-                    parallel_tool_calls=False,
-                ),
                 groq.LLM(
                     model="qwen/qwen3.8-27b",
                     temperature=0.2,
@@ -984,24 +988,21 @@ async def my_agent(ctx: JobContext):
                     model="gemini-flash-lite-latest",
                     temperature=0.2,
                 ),
+                gnani_llm.GnaniLLM(
+                    model="evon-v3.3",
+                    temperature=0.2,
+                    parallel_tool_calls=False,
+                ),
             ],
-            attempt_timeout=15.0,
+            attempt_timeout=3.0,
         ),
-        # Text-to-speech (TTS): Gnani Timbre v2.5 low-latency Indian-accent TTS as primary
-        tts=gnani_tts.GnaniTTS(
-            voice=GNANI_VOICE,
-            language="hi-IN",
-            speed=1.0,
+        tts=murf.TTS(
+            voice=murf_voice,
+            style="Conversational",
         ),
-        # VAD and turn detection are used to determine when the user is speaking and when the agent should respond
-        # See more at https://docs.livekit.io/agents/build/turns
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
-        # allow the LLM to generate a response while waiting for the end of turn
-        # See more at https://docs.livekit.io/agents/build/audio/#preemptive-generation
         preemptive_generation=True,
-        # Fires "user_state_changed" -> "away" once user AND agent are both
-        # silent for this long. Drives the silent-caller handling below.
         user_away_timeout=SILENCE_TIMEOUT,
     )
 
@@ -1087,7 +1088,7 @@ async def my_agent(ctx: JobContext):
     # Without switching the Murf locale, English text was synthesised through the
     # hi-IN voice — that is the bad accent. Locale fixes accent; the prompt fixes
     # word choice. Same handler latches red flags so end_call can refuse.
-    def _set_locale(code: str) -> None:
+    def _set_locale(code: str, explicit: bool = False) -> None:
         norm = code.lower().strip()
         locale = INDIC_LOCALES.get(norm)
         if not locale:
@@ -1096,23 +1097,37 @@ async def my_agent(ctx: JobContext):
                     locale = loc
                     break
         if not locale:
-            locale = "hi-IN" if re.search(r"[ऀ-ॿ]", code) else "en-IN"
+            locale = "en-IN" if norm in ("en", "english") else "hi-IN"
 
-        if locale == assistant.tts_locale:
-            return
+        if explicit:
+            assistant.explicit_user_language = norm
+
         assistant.tts_locale = locale
-        try:
-            session.tts.update_options(locale=locale)
-            logger.info("LANG TTS locale -> %s (stt=%s)", locale, code)
-        except Exception as e:
-            logger.warning("LANG locale switch failed: %s", e)
+        assistant.current_lang = norm
 
+        voice = "en-IN-anisha" if norm in ("en", "english") else "hi-IN-swara"
+        try:
+            if hasattr(session, "tts") and hasattr(session.tts, "update_options"):
+                session.tts.update_options(voice=voice)
+                logger.info(
+                    "LANG TTS voice dynamically updated -> %s (locale=%s)",
+                    voice,
+                    locale,
+                )
+        except Exception as e:
+            logger.warning("LANG voice update failed: %s", e)
+
+        stt_lang = (
+            "en-IN"
+            if norm in ("en", "english")
+            else ("hi" if norm in ("hi", "hindi") else "multi")
+        )
         try:
             if hasattr(session, "stt") and hasattr(session.stt, "update_options"):
-                session.stt.update_options(language=locale)
-                logger.info("LANG STT locale dynamically reconfigured -> %s", locale)
+                session.stt.update_options(language=stt_lang)
+                logger.info("LANG STT language dynamically updated -> %s", stt_lang)
         except Exception as e:
-            logger.debug("LANG STT switch notice: %s", e)
+            logger.debug("LANG STT update notice: %s", e)
 
     @ctx.room.on("data_received")
     def _on_data_received(dp) -> None:
@@ -1124,8 +1139,7 @@ async def my_agent(ctx: JobContext):
                     "Real-time UI language switch received over LiveKit data channel: %s",
                     target_lang,
                 )
-                assistant.tts_locale = INDIC_LOCALES.get(target_lang, "hi-IN")
-                _set_locale(target_lang)
+                _set_locale(target_lang, explicit=True)
                 ack_msg = LANG_SWITCH_NOTICES.get(target_lang)
                 if ack_msg:
                     _lang_task = asyncio.create_task(
@@ -1138,7 +1152,9 @@ async def my_agent(ctx: JobContext):
                     district = loc_val.get("district") or loc_val.get("city") or ""
                     assistant.caller_facts["district"] = district
                     assistant.caller_facts["city"] = loc_val.get("city") or district
-                    assistant.caller_facts["location"] = loc_val.get("formatted") or district
+                    assistant.caller_facts["location"] = (
+                        loc_val.get("formatted") or district
+                    )
                     assistant.caller_facts["pincode"] = loc_val.get("pincode") or ""
                     if loc_val.get("lat") is not None:
                         assistant.caller_facts["lat"] = float(loc_val["lat"])
@@ -1159,7 +1175,7 @@ async def my_agent(ctx: JobContext):
     def _on_transcribed(ev) -> None:
         if not ev.is_final:
             return
-        if ev.language:
+        if ev.language and not assistant.explicit_user_language:
             _set_locale(ev.language)
         text = ev.transcript or ""
         # Deterministic Clinical Multi-Match Scanner:
@@ -1368,45 +1384,60 @@ async def my_agent(ctx: JobContext):
     # Determine caller ID and initial language preference from connected participant metadata
     caller_id = ""
     requested_caller_lang = ""
-    for p in ctx.room.remote_participants.values():
+    is_web_client = False
+
+    def _apply_participant(p):
+        nonlocal caller_id, requested_caller_lang, is_web_client
+        if not p:
+            return
         if p.identity:
             caller_id = p.identity
-            if p.metadata:
-                try:
-                    p_meta = json.loads(p.metadata)
-                    if p_meta.get("language"):
-                        requested_caller_lang = p_meta["language"]
-                        _set_locale(requested_caller_lang)
-                    if p_meta.get("location"):
-                        loc_val = p_meta["location"]
-                        if isinstance(loc_val, dict):
-                            district = loc_val.get("district") or loc_val.get("city") or ""
-                            assistant.caller_facts["district"] = district
-                            assistant.caller_facts["city"] = loc_val.get("city") or district
-                            assistant.caller_facts["location"] = loc_val.get("formatted") or district
-                            assistant.caller_facts["pincode"] = loc_val.get("pincode") or ""
-                            if loc_val.get("lat") is not None:
-                                assistant.caller_facts["lat"] = float(loc_val["lat"])
-                            if loc_val.get("lon") is not None:
-                                assistant.caller_facts["lon"] = float(loc_val["lon"])
-                        elif isinstance(loc_val, str):
-                            assistant.caller_facts["location"] = loc_val
-                            assistant.caller_facts["district"] = loc_val
-                        logger.info(
-                            "Caller initial GPS location from metadata: %s",
-                            assistant.caller_facts.get("location"),
-                        )
-                except Exception:
-                    pass
+        if p.metadata:
+            try:
+                p_meta = json.loads(p.metadata)
+                if p_meta.get("source") == "web":
+                    is_web_client = True
+                if p_meta.get("language"):
+                    requested_caller_lang = p_meta["language"]
+                    _set_locale(requested_caller_lang, explicit=True)
+                if p_meta.get("location"):
+                    loc_val = p_meta["location"]
+                    if isinstance(loc_val, dict):
+                        district = loc_val.get("district") or loc_val.get("city") or ""
+                        assistant.caller_facts["district"] = district
+                        assistant.caller_facts["city"] = loc_val.get("city") or district
+                        assistant.caller_facts["location"] = loc_val.get("formatted") or district
+                        assistant.caller_facts["pincode"] = loc_val.get("pincode") or ""
+                        if loc_val.get("lat") is not None:
+                            assistant.caller_facts["lat"] = float(loc_val["lat"])
+                        if loc_val.get("lon") is not None:
+                            assistant.caller_facts["lon"] = float(loc_val["lon"])
+                    elif isinstance(loc_val, str):
+                        assistant.caller_facts["location"] = loc_val
+                        assistant.caller_facts["district"] = loc_val
+                    logger.info(
+                        "Caller initial GPS location from metadata: %s (district: %s)",
+                        assistant.caller_facts.get("location"),
+                        assistant.caller_facts.get("district"),
+                    )
+            except Exception as e:
+                logger.debug("Participant metadata parse skipped: %s", e)
+
+    for p in ctx.room.remote_participants.values():
+        _apply_participant(p)
+        if caller_id:
             break
 
     if not caller_id:
         try:
-            remote_p = await ctx.wait_for_participant(timeout=2.0)
-            if remote_p and remote_p.identity:
-                caller_id = remote_p.identity
+            remote_p = await ctx.wait_for_participant(timeout=3.0)
+            _apply_participant(remote_p)
         except Exception:
             pass
+
+    @ctx.room.on("participant_metadata_changed")
+    def _on_meta_update(p, _prev) -> None:
+        _apply_participant(p)
 
     assistant.caller_user_id = caller_id
     caller_record = await db.get_caller(caller_id) if caller_id else None
@@ -1419,7 +1450,7 @@ async def my_agent(ctx: JobContext):
             dial_info.get("name") or (caller_record or {}).get("name", ""),
             dial_info.get("reason", ""),
         )
-    elif caller_record:
+    elif caller_record and not is_web_client and caller_record.get("name"):
         name = caller_record.get("name", "")
         lang = caller_record.get("language_preference", "hi")
         facts = caller_record.get("facts", {})
@@ -1445,7 +1476,7 @@ async def my_agent(ctx: JobContext):
 
     # Match the voice locale to the greeting
     if requested_caller_lang:
-        _set_locale(requested_caller_lang)
+        _set_locale(requested_caller_lang, explicit=True)
     else:
         _set_locale("hi" if re.search(r"[ऀ-ॿ]", greeting) else "en")
 

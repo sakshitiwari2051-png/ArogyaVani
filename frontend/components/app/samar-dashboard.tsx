@@ -456,17 +456,7 @@ export function SamarDashboard() {
     formatted: string;
   }
 
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('arogyavani_location');
-        if (saved) return JSON.parse(saved);
-        const match = document.cookie.match(/arogyavani_location=([^;]+)/);
-        if (match) return JSON.parse(decodeURIComponent(match[1]));
-      } catch {}
-    }
-    return null;
-  });
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
@@ -572,6 +562,17 @@ export function SamarDashboard() {
 
   useEffect(() => {
     setMounted(true);
+    try {
+      const saved = localStorage.getItem('arogyavani_location');
+      if (saved) {
+        setUserLocation(JSON.parse(saved));
+      } else {
+        const match = document.cookie.match(/arogyavani_location=([^;]+)/);
+        if (match) {
+          setUserLocation(JSON.parse(decodeURIComponent(match[1])));
+        }
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -734,11 +735,15 @@ export function SamarDashboard() {
   }, [sessions, searchQuery]);
 
   // Combined messages to display in the chat stream (updating real-time speech tokens)
+  const [sessionClearedAt, setSessionClearedAt] = useState<number>(0);
+
   const displayedMessages = useMemo<ChatMessageItem[]>(() => {
-    const liveItems = toChatItems(messages);
-    if (!activeSession) return liveItems;
-    return mergeMessages(activeSession.messages, liveItems);
-  }, [messages, activeSession]);
+    if (activeSession) {
+      return activeSession.messages;
+    }
+    // For a brand new chat, filter out any messages from previous room sessions
+    return toChatItems(messages).filter((m) => m.timestamp >= sessionClearedAt);
+  }, [messages, activeSession, sessionClearedAt]);
 
   // Auto-scroll to bottom as messages or streaming words arrive
   useEffect(() => {
@@ -748,7 +753,8 @@ export function SamarDashboard() {
   // Sync live LiveKit messages into persistent active chat session
   useEffect(() => {
     if (messages.length === 0) return;
-    const currentLiveMsgs = toChatItems(messages);
+    const currentLiveMsgs = toChatItems(messages).filter((m) => m.timestamp >= sessionClearedAt);
+    if (currentLiveMsgs.length === 0) return;
 
     setSessions((prevSessions) => {
       let currentId = activeChatId;
@@ -806,17 +812,23 @@ export function SamarDashboard() {
       }
       return updated;
     });
-  }, [messages, activeChatId]);
+  }, [messages, activeChatId, sessionClearedAt]);
 
   // ChatGPT-like New Chat handler: resets to fresh Ready state without auto-starting call
   const handleNewChat = () => {
     if (isConnected) {
       end();
     }
+    const now = Date.now();
+    setSessionClearedAt(now);
     setActiveChatId(null);
-    setHasStartedOnce(false);
+    setActiveFacility(null);
     setChatInputText('');
+    setHasStartedOnce(false);
     setActiveNav('new_chat');
+    if (typeof document !== 'undefined') {
+      document.cookie = 'arogyavani_caller_id=; Path=/; Max-Age=0; SameSite=Lax';
+    }
   };
 
   // Select a previous chat session to view/continue
@@ -848,8 +860,24 @@ export function SamarDashboard() {
   useEffect(() => {
     if (isConnected) {
       setHasStartedOnce(true);
+      if (room?.localParticipant) {
+        try {
+          const langPayload = new TextEncoder().encode(
+            JSON.stringify({ type: 'language_change', language: selectedLang })
+          );
+          room.localParticipant.publishData(langPayload, { reliable: true, topic: 'language_change' });
+          if (userLocation) {
+            const locPayload = new TextEncoder().encode(
+              JSON.stringify({ type: 'user_location', location: userLocation })
+            );
+            room.localParticipant.publishData(locPayload, { reliable: true, topic: 'user_location' });
+          }
+        } catch (syncErr) {
+          console.debug('Initial room data channel sync notice:', syncErr);
+        }
+      }
     }
-  }, [isConnected]);
+  }, [isConnected, room, selectedLang, userLocation]);
 
   // Handle sending chat message via LiveKit
   const handleSendMessage = async (textToSend?: string) => {
@@ -1373,11 +1401,11 @@ export function SamarDashboard() {
                 />
               )}
               <span>
-                {userLocation
+                {mounted && userLocation
                   ? `${userLocation.suburb || userLocation.city || userLocation.district}`
                   : t.allowLocation || 'Allow GPS'}
               </span>
-              {userLocation && (
+              {mounted && userLocation && (
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
               )}
             </button>
