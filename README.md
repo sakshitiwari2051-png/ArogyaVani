@@ -22,6 +22,9 @@ Hindi, English & 16 Indic Languages · Browser & Real Phone Calls (SIP) · Deter
 
 </div>
 
+> 📄 **Official 1-Page Solution Pitch:**  
+> Evaluators reviewing for **The Great Indian AI Internship Challenge 2026** — see our concise submission document: 👉 **[Read the 1-Page Executive Pitch (`docs/ONE_PAGER.md`)](docs/ONE_PAGER.md)** *(Live links, Gnani Sovereign Stack proof, clinical innovations, and 157/157 passed test metrics)*.
+
 <div align="center">
 
 <img src="assets/readme/session-facility-card.png" alt="ArogyaVani live session: agent speaking, with a facility card showing Nova Hospital Shivpur Varanasi, its OPD timings, 24x7 emergency status, free services and an embedded map" width="900"/>

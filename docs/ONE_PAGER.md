@@ -10,17 +10,20 @@
 | **Live Web Platform** | [https://arogya-vani-jet.vercel.app](https://arogya-vani-jet.vercel.app) | **Live (Mumbai bom1 Edge)** |
 | **Cloud Voice Agent** | [https://arogyavani-6dbk.onrender.com](https://arogyavani-6dbk.onrender.com) | **Healthy (Docker Container)** |
 | **GitHub Repository** | [https://github.com/sakshitiwari2051-png/ArogyaVani](https://github.com/sakshitiwari2051-png/ArogyaVani) | **Public (157/157 Tests Pass)** |
-| **Full Documentation** | [Read Full Technical Architecture (`README.md`)](../README.md) | **Comprehensive Spec** |
+| **Full Technical Spec** | [Read Full Technical Architecture (`README.md`)](../README.md) | **Comprehensive Blueprint** |
 
 ---
 
 ### 1. Problem Statement & The Bharat Reality
 * **800M+ Indians** in Tier-2/3 cities and rural villages lack fluent English and digital smartphone literacy; traditional chat interfaces fail them.
-* **1:1,456 Doctor-to-Patient Ratio**: Rural PHCs (Primary Health Centres) are overcrowded, leading to delayed emergency triage and preventable mortality.
-* **Generic LLMs Fail in Clinical Healthcare**: Open-source/Western voice bots hallucinate dangerous dosages, drop regional Indian phonemes, and lack deterministic safety controls for life-threatening emergencies.
+* **1:1,456 Doctor-to-Patient Ratio**: Rural PHCs (Primary Health Centres) are overburdened, leading to delayed emergency triage and preventable mortality.
+* **Generic LLMs Fail in Clinical Healthcare**: Generic Western voice bots hallucinate dangerous dosages, drop regional Indian phonemes, and lack deterministic safety controls for life-threatening emergencies.
 
 ### 2. The Solution: ArogyaVani Sovereign Voice Architecture
-ArogyaVani is a **bilingual (Hindi/English) voice-first sovereign health helpline** reachable via both modern WebRTC and legacy 2G/PSTN feature phones (Twilio SIP).
+ArogyaVani is a **bilingual (Hindi/English) voice-first sovereign health helpline** reachable via both modern WebRTC and legacy 2G/PSTN feature phones (Twilio SIP), built natively on Gnani.ai's sovereign stack:
+* **Prisma v2.5 STT** (`wss://api.vachana.ai/stt/v3/stream`): Real-time streaming Indic phoneme transcription.
+* **Evon v3.3 Reasoning LLM**: 30B parameter clinical reasoning engine with strict medical guardrails.
+* **Timbre v2.5 TTS** (`Nalini` / `hi-IN`): Ultra-low latency neural streaming synthesis delivering empathic bedside manner.
 
 ```
 [ Rural Caller (WebRTC / 2G Phone) ]
@@ -50,7 +53,7 @@ ArogyaVani is a **bilingual (Hindi/English) voice-first sovereign health helplin
   * `25/25` Red-Team Adversarial Jailbreak & Injection Defenses (`test_red_team_adversarial.py`)
   * `22/22` Gnani.ai Sovereign Stack Integrations (`test_gnani_*.py`)
   * `63/63` Telephony, Multi-Agent Handoff, Tools & Database Evals
-* **Voice Pipeline Latency**: Streaming audio Time-to-First-Byte (TTFB) **< 650ms** across Mumbai edge.
+* **Voice Pipeline Latency**: Streaming audio Time-to-First-Byte (TTFB) **< 650ms** across Mumbai edge; TTS chunk playback at **64ms**.
 * **Production Deployed**: Next.js 15 frontend on Vercel (`bom1`) paired with containerized LiveKit agent backend on Render.
 
 ---
