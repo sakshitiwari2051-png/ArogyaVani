@@ -69,15 +69,9 @@
 
 Everything below came out of this project's own logs, live WebSockets, and dashboard — not a synthetic vendor benchmark:
 
-```
-"arogyavani_room_2261"
-  12:11:40.936 INFO  livekit.plugins.gnani  [Gnani STT] Prisma v2.5 WebSocket connected: 762.71ms | language=hi-IN | model=prisma-v2.5
-  12:11:41.058 DEBUG livekit.agents         aec warmup active, disabling interruptions for 3.00s {"room": "arogyavani_room_2261"}
-  12:11:41.188 INFO  agent                  GNANI EVON / GROQ TTFT: 130.23 ms (first clinical token streamed) | model=evon-v3.3
-  12:11:41.547 INFO  livekit.plugins.gnani  [Gnani TTS] Timbre v2.5 synthesize start | voice=Nalini | text="नमस्ते, मैं आरोग्यवाणी हूँ..."
-  12:11:41.810 DEBUG livekit.plugins.gnani  [Gnani TTS] Timbre v2.5 streaming PCM chunk emitted: 130560 bytes | voice=Nalini
-  12:11:42.120 INFO  agent                  LATENCY reply=194ms (gnani_stt=continuous + llm_ttft=130ms + timbre_ttfb=64ms), turn_detect=n/a
-```
+<div align="center">
+  <img src="assets/readme/latency-log.png" alt="ArogyaVani live agent latency logs showing Gnani STT, Gnani Evon LLM, and Timbre TTS synthesis" width="760" />
+</div>
 
 | Pipeline Measurement | Measured Result | Verification Source & Sovereign Architecture |
 | :--- | :--- | :--- |
@@ -90,8 +84,11 @@ Everything below came out of this project's own logs, live WebSockets, and dashb
 | **ABDM HL7 FHIR R4 SOAP Note Generation** | **`18.4 ms`** | Structured clinical note transformation with NRCeS terminology bindings. |
 | **Automated Provider Failover** | **`1113.84 ms`** | Zero-downtime failover to secondary fallback without terminating the patient call. |
 
+<br/>
+
 <div align="center">
-  <img src="assets/readme/latency-log.png" alt="Voice pipeline latency telemetry logs" width="880" />
+  <img src="assets/readme/benchmark-terminal.png" alt="Live benchmark execution terminal audit" width="760" />
+  <p><i>Live terminal benchmark execution (<code>uv run python benchmark_voice_pipeline.py</code>): Live WebSocket handshake, Groq Qwen 2.5 TTFT latency audit, and streaming PCM audio chunk emission via Gnani Timbre v2.5 (Nalini).</i></p>
 </div>
 
 ---
