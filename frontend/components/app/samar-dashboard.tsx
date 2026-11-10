@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import { RoomEvent } from 'livekit-client';
@@ -443,6 +443,106 @@ export function SamarDashboard() {
   const [isDialModalOpen, setIsDialModalOpen] = useState(false);
   const [dialPhone, setDialPhone] = useState('+91');
   const [isDialing, setIsDialing] = useState(false);
+
+  // Live Device GPS Location State
+  interface UserLocation {
+    lat: number;
+    lon: number;
+    district: string;
+    city: string;
+    suburb: string;
+    state: string;
+    pincode: string;
+    formatted: string;
+  }
+
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('arogyavani_location');
+        if (saved) return JSON.parse(saved);
+        const match = document.cookie.match(/arogyavani_location=([^;]+)/);
+        if (match) return JSON.parse(decodeURIComponent(match[1]));
+      } catch {}
+    }
+    return null;
+  });
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+  // Auto-prompt location modal on initial page load if location is not yet known
+  useEffect(() => {
+    if (mounted && !userLocation) {
+      const timer = setTimeout(() => {
+        setIsLocationModalOpen(true);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, userLocation]);
+
+  const requestLocationPermission = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+    setIsDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch('/api/location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: latitude, lon: longitude }),
+          });
+          const data = await res.json();
+          if (data?.location) {
+            setUserLocation(data.location);
+            try {
+              localStorage.setItem('arogyavani_location', JSON.stringify(data.location));
+            } catch {}
+            setIsLocationModalOpen(false);
+            toast.success(
+              `📍 Location verified: ${data.location.suburb || data.location.city}, ${data.location.district}`,
+              {
+                description:
+                  'Nearest PHCs, CHCs, and 24x7 hospital directions are now mapped around you.',
+              }
+            );
+            // Broadcast live location to active voice agent room
+            if (room && isConnected && room.localParticipant) {
+              try {
+                const payload = new TextEncoder().encode(
+                  JSON.stringify({ type: 'user_location', location: data.location })
+                );
+                room.localParticipant.publishData(payload, {
+                  reliable: true,
+                  topic: 'user_location',
+                });
+              } catch (err) {
+                console.warn('Failed to publish location to room:', err);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error saving location:', err);
+          toast.error('Could not resolve location address');
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      (error) => {
+        console.warn('Geolocation error:', error);
+        setIsDetectingLocation(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error('Location permission was denied in your browser settings.');
+        } else {
+          toast.error('Could not detect your current location.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  }, [room, isConnected]);
 
   const handleTriggerPhoneCall = async () => {
     if (!dialPhone || dialPhone.trim() === '+91' || dialPhone.trim().length < 10) {
@@ -1238,6 +1338,50 @@ export function SamarDashboard() {
               <span>{t.cloudAgent}</span>
             </a>
 
+            {/* 3.2 GPS Live Location Pill */}
+            <button
+              onClick={() => {
+                if (!userLocation) {
+                  requestLocationPermission();
+                } else {
+                  setIsLocationModalOpen(true);
+                }
+              }}
+              disabled={isDetectingLocation}
+              className={cn(
+                'clay-btn flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold transition-all hover:scale-105',
+                userLocation
+                  ? 'text-sky-800 dark:text-cyan-300'
+                  : 'border border-amber-300/80 bg-amber-50/90 text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/60 dark:text-amber-200'
+              )}
+              title={
+                userLocation
+                  ? `Live Location: ${userLocation.formatted} (Click to change)`
+                  : 'Click to enable location for nearest hospital & PHC detection'
+              }
+            >
+              {isDetectingLocation ? (
+                <Loader2 className="size-3.5 animate-spin text-sky-600 dark:text-cyan-400" />
+              ) : (
+                <MapPin
+                  className={cn(
+                    'size-3.5 stroke-[2.5]',
+                    userLocation
+                      ? 'text-sky-600 dark:text-cyan-400'
+                      : 'animate-bounce text-amber-600 dark:text-amber-400'
+                  )}
+                />
+              )}
+              <span>
+                {userLocation
+                  ? `${userLocation.suburb || userLocation.city || userLocation.district}`
+                  : t.allowLocation || 'Allow GPS'}
+              </span>
+              {userLocation && (
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+            </button>
+
             {/* 3.5 Real Phone Call (Cellular PSTN) */}
             <button
               onClick={() => setIsDialModalOpen(true)}
@@ -1761,6 +1905,81 @@ export function SamarDashboard() {
           )}
         </main>
       </div>
+
+      {/* ── Location Permission & Hospital Routing Modal ──────────── */}
+      <AnimatePresence>
+        {isLocationModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="clay-card relative w-full max-w-md border-sky-300/60 bg-white/95 p-6 shadow-2xl dark:border-sky-800/60 dark:bg-slate-900/95"
+            >
+              <button
+                onClick={() => setIsLocationModalOpen(false)}
+                className="absolute top-4 right-4 rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              >
+                <X className="size-4" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700 shadow-sm dark:bg-cyan-950/80 dark:text-cyan-300">
+                  <MapPin className="size-6 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
+                    {t.locationTitle || 'Enable Location Access'}
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {userLocation ? `Active: ${userLocation.formatted}` : 'For Nearest PHC & Hospital Routing'}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                {t.locationDesc ||
+                  'ArogyaVani uses your device GPS to automatically find the nearest Primary Health Centre (PHC), Community Health Centre (CHC), and 24x7 emergency hospital without you needing to type.'}
+              </p>
+
+              {userLocation && (
+                <div className="clay-card-flat mt-3 flex items-center gap-2 p-2.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="truncate">{userLocation.formatted}</span>
+                </div>
+              )}
+
+              <div className="mt-5 flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(false)}
+                  className="clay-btn flex-1 py-2 text-xs font-bold text-slate-700 dark:text-slate-300"
+                >
+                  {t.skipLocation || 'Skip for Now'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isDetectingLocation}
+                  onClick={requestLocationPermission}
+                  className="clay-btn-primary flex flex-1 items-center justify-center gap-2 py-2 text-xs font-black text-slate-950"
+                >
+                  {isDetectingLocation ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Detecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="size-3.5 stroke-[2.5]" />
+                      <span>{t.allowLocation || 'Allow Location Access'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── Call My Phone Dialog Modal (PSTN Telephony) ──────────── */}
       <AnimatePresence>

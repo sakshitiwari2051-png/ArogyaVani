@@ -752,21 +752,27 @@ class Assistant(Agent):
             facility_type: Filter by "PHC", "CHC", "District Hospital", or "any".
         """
         loc = (location_or_pincode or "").strip()
+        lat = self.caller_facts.get("lat")
+        lon = self.caller_facts.get("lon")
         if not loc:
-            # Tool chaining: auto-resolve from Day 4 memory
+            # Tool chaining: auto-resolve from Day 4 memory or live GPS
             loc = (
                 self.caller_facts.get("district")
+                or self.caller_facts.get("city")
                 or self.caller_facts.get("location")
+                or self.caller_facts.get("pincode")
                 or ""
             )
 
         logger.info(
-            "find_nearest_health_facility live query loc='%s', type='%s'",
+            "find_nearest_health_facility live query loc='%s', lat=%s, lon=%s, type='%s'",
             loc,
+            lat,
+            lon,
             facility_type,
         )
         res = await facilities.find_health_facilities_async(
-            loc, facility_type=facility_type
+            loc, facility_type=facility_type, lat=lat, lon=lon
         )
 
         # Advanced Day 5 Extra: Push results to UI via LiveKit Data Channel
@@ -1126,6 +1132,26 @@ async def my_agent(ctx: JobContext):
                         session.say(ack_msg, allow_interruptions=True)
                     )
                     _ = _lang_task
+            elif payload.get("type") == "user_location" and payload.get("location"):
+                loc_val = payload["location"]
+                if isinstance(loc_val, dict):
+                    district = loc_val.get("district") or loc_val.get("city") or ""
+                    assistant.caller_facts["district"] = district
+                    assistant.caller_facts["city"] = loc_val.get("city") or district
+                    assistant.caller_facts["location"] = loc_val.get("formatted") or district
+                    assistant.caller_facts["pincode"] = loc_val.get("pincode") or ""
+                    if loc_val.get("lat") is not None:
+                        assistant.caller_facts["lat"] = float(loc_val["lat"])
+                    if loc_val.get("lon") is not None:
+                        assistant.caller_facts["lon"] = float(loc_val["lon"])
+                elif isinstance(loc_val, str):
+                    assistant.caller_facts["location"] = loc_val
+                    assistant.caller_facts["district"] = loc_val
+                logger.info(
+                    "Caller live GPS location updated over data channel: %s (district: %s)",
+                    assistant.caller_facts.get("location"),
+                    assistant.caller_facts.get("district"),
+                )
         except Exception as e:
             logger.debug("Non-language data channel packet received: %s", e)
 
@@ -1351,6 +1377,25 @@ async def my_agent(ctx: JobContext):
                     if p_meta.get("language"):
                         requested_caller_lang = p_meta["language"]
                         _set_locale(requested_caller_lang)
+                    if p_meta.get("location"):
+                        loc_val = p_meta["location"]
+                        if isinstance(loc_val, dict):
+                            district = loc_val.get("district") or loc_val.get("city") or ""
+                            assistant.caller_facts["district"] = district
+                            assistant.caller_facts["city"] = loc_val.get("city") or district
+                            assistant.caller_facts["location"] = loc_val.get("formatted") or district
+                            assistant.caller_facts["pincode"] = loc_val.get("pincode") or ""
+                            if loc_val.get("lat") is not None:
+                                assistant.caller_facts["lat"] = float(loc_val["lat"])
+                            if loc_val.get("lon") is not None:
+                                assistant.caller_facts["lon"] = float(loc_val["lon"])
+                        elif isinstance(loc_val, str):
+                            assistant.caller_facts["location"] = loc_val
+                            assistant.caller_facts["district"] = loc_val
+                        logger.info(
+                            "Caller initial GPS location from metadata: %s",
+                            assistant.caller_facts.get("location"),
+                        )
                 except Exception:
                     pass
             break

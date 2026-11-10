@@ -147,7 +147,10 @@ def _normalize_text(text: str) -> str:
 
 
 async def _fetch_live_osm_facilities(
-    query_location: str, max_results: int = 2
+    query_location: str,
+    max_results: int = 2,
+    lat: float | None = None,
+    lon: float | None = None,
 ) -> list[dict[str, Any]]:
     """Query live OpenStreetMap Nominatim POI API for real-time healthcare facilities in India."""
     headers = {
@@ -173,7 +176,12 @@ async def _fetch_live_osm_facilities(
         except Exception as e:
             logger.debug("India Post API lookup skipped: %s", e)
 
-    url = f"https://nominatim.openstreetmap.org/search?q=hospital+in+{search_target}&format=json&limit={max_results}&countrycodes=in"
+    if lat is not None and lon is not None:
+        delta = 0.18
+        viewbox = f"{lon - delta},{lat + delta},{lon + delta},{lat - delta}"
+        url = f"https://nominatim.openstreetmap.org/search?q=hospital&format=json&limit={max_results}&viewbox={viewbox}&bounded=1&countrycodes=in"
+    else:
+        url = f"https://nominatim.openstreetmap.org/search?q=hospital+in+{search_target}&format=json&limit={max_results}&countrycodes=in"
 
     async with httpx.AsyncClient(timeout=3.2) as client:
         resp = await client.get(url, headers=headers)
@@ -260,10 +268,12 @@ async def find_health_facilities_async(
     query_location: str,
     facility_type: str = "any",
     max_results: int = 2,
+    lat: float | None = None,
+    lon: float | None = None,
 ) -> dict[str, Any]:
     """Search for nearest health facilities using Live OpenStreetMap & India Post APIs, with local cache fallback."""
     loc_clean = _normalize_text(query_location).strip()
-    if not loc_clean:
+    if not loc_clean and lat is None:
         return {
             "status": "missing_location",
             "facilities": [],
@@ -277,8 +287,23 @@ async def find_health_facilities_async(
     top_facilities: list[dict[str, Any]] = []
     is_live = False
 
+    # If coordinates are present, try live coordinate-bounded OSM query first for true local accuracy
+    if lat is not None and lon is not None:
+        try:
+            live_facilities = await _fetch_live_osm_facilities(
+                query_location or "hospital",
+                max_results=max_results,
+                lat=lat,
+                lon=lon,
+            )
+            if live_facilities:
+                top_facilities = live_facilities
+                is_live = True
+        except Exception as e:
+            logger.warning("Live OSM coordinate query failed: %s", e)
+
     # If a specific government healthcare tier was requested (e.g. CHC, PHC), prioritize verified registry
-    if facility_type and facility_type.upper() != "ANY":
+    if not top_facilities and facility_type and facility_type.upper() != "ANY":
         filtered_fallback = _search_fallback_registry(
             query_location, facility_type=facility_type, max_results=max_results
         )
@@ -301,7 +326,10 @@ async def find_health_facilities_async(
     if not top_facilities:
         try:
             live_facilities = await _fetch_live_osm_facilities(
-                query_location, max_results=max_results
+                query_location,
+                max_results=max_results,
+                lat=lat,
+                lon=lon,
             )
             if live_facilities:
                 top_facilities = live_facilities

@@ -109,13 +109,28 @@ export async function POST(req: Request) {
       (langCookieMatch ? langCookieMatch[1] : null) ||
       'hi';
 
+    const locCookieMatch = cookieHeader.match(/arogyavani_location=([^;]+)/);
+    let userLoc = null;
+    if (locCookieMatch) {
+      try {
+        userLoc = JSON.parse(decodeURIComponent(locCookieMatch[1]));
+      } catch {}
+    }
+    if (!userLoc && body?.location) {
+      userLoc = body.location;
+    }
+
     const roomName = `voice_assistant_room_${crypto.randomUUID().slice(0, 8)}`;
 
     const participantToken = await createParticipantToken(
       {
         identity: participantIdentity,
         name: participantName,
-        metadata: JSON.stringify({ language: lang, source: 'web' }),
+        metadata: JSON.stringify({
+          language: lang,
+          source: 'web',
+          location: userLoc,
+        }),
       },
       roomName,
       roomConfig

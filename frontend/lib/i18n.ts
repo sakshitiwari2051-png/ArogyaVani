@@ -36,6 +36,11 @@ export interface Translations {
   cancel: string;
   ringPhone: string;
   calling: string;
+  locationTitle: string;
+  locationDesc: string;
+  allowLocation: string;
+  skipLocation: string;
+  locationActive: string;
 }
 
 export const I18N: Record<string, Translations> = {
@@ -77,6 +82,11 @@ export const I18N: Record<string, Translations> = {
     cancel: 'रद्द करें',
     ringPhone: 'कॉल लगाएं',
     calling: 'कॉल लग रही है...',
+    locationTitle: 'निकटतम अस्पताल और PHC के लिए लोकेशन ऑन करें',
+    locationDesc: 'आरोग्यवाणी आपके GPS लोकेशन का उपयोग करके पास के प्राथमिक स्वास्थ्य केंद्र (PHC) और 24x7 आपातकालीन अस्पताल की सही दूरी और दिशा तुरंत बताती है।',
+    allowLocation: 'लोकेशन की अनुमति दें',
+    skipLocation: 'बाद में',
+    locationActive: 'GPS सक्रिय',
   },
   en: {
     newChat: 'New Consultation',
@@ -116,6 +126,11 @@ export const I18N: Record<string, Translations> = {
     cancel: 'Cancel',
     ringPhone: 'Ring My Phone',
     calling: 'Calling...',
+    locationTitle: 'Enable Location for Nearest Hospital & PHC Detection',
+    locationDesc: 'ArogyaVani uses your device GPS to locate the nearest Primary Health Centre (PHC), Community Health Centre (CHC), and 24x7 emergency hospital directly around you.',
+    allowLocation: 'Allow Location Access',
+    skipLocation: 'Skip for Now',
+    locationActive: 'GPS Active',
   },
   kn: {
     newChat: 'ಹೊಸ ಸಮಾಲೋಚನೆ',
@@ -432,5 +447,8 @@ export const I18N: Record<string, Translations> = {
 };
 
 export function getT(lang: string): Translations {
-  return I18N[lang] || I18N['hi'] || I18N['en'];
+  const base = I18N['en'];
+  const specific = I18N[lang] || I18N['hi'] || {};
+  return { ...base, ...specific };
 }
+
