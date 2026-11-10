@@ -437,6 +437,37 @@ export function SamarDashboard() {
   const [facilityTimestamp, setFacilityTimestamp] = useState<string>('Live Public API');
   const [showFacilityMap, setShowFacilityMap] = useState(true);
 
+  // PSTN Outbound Phone Call State
+  const [isDialModalOpen, setIsDialModalOpen] = useState(false);
+  const [dialPhone, setDialPhone] = useState('+91');
+  const [isDialing, setIsDialing] = useState(false);
+
+  const handleTriggerPhoneCall = async () => {
+    if (!dialPhone || dialPhone.trim() === '+91' || dialPhone.trim().length < 10) {
+      toast.error('Please enter a valid 10-digit mobile phone number.');
+      return;
+    }
+    setIsDialing(true);
+    try {
+      const res = await fetch('/api/dial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: dialPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to place call');
+      } else {
+        toast.success(data.message || 'Call initiated! Your phone will ring shortly.');
+        setIsDialModalOpen(false);
+      }
+    } catch {
+      toast.error('Could not connect to telephony service');
+    } finally {
+      setIsDialing(false);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -1184,6 +1215,16 @@ export function SamarDashboard() {
               <span>Cloud Agent</span>
             </a>
 
+            {/* 3.5 Real Phone Call (Cellular PSTN) */}
+            <button
+              onClick={() => setIsDialModalOpen(true)}
+              className="clay-btn flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-sky-800 transition-transform hover:scale-105 dark:text-sky-300"
+              title="Get a real phone call from ArogyaVani on your mobile"
+            >
+              <Phone className="size-3.5 stroke-[2.5] text-sky-600 dark:text-sky-400" />
+              <span>Call My Phone</span>
+            </button>
+
             {/* 4. View GitHub */}
             <a
               href="https://github.com/sakshitiwari2051-png/ArogyaVani"
@@ -1701,6 +1742,89 @@ export function SamarDashboard() {
           )}
         </main>
       </div>
+
+      {/* ── Call My Phone Dialog Modal (PSTN Telephony) ──────────── */}
+      <AnimatePresence>
+        {isDialModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="clay-card relative w-full max-w-md border-sky-300/60 bg-white/95 p-6 shadow-2xl dark:border-sky-800/60 dark:bg-slate-900/95"
+            >
+              <button
+                onClick={() => setIsDialModalOpen(false)}
+                className="absolute top-4 right-4 rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              >
+                <X className="size-4" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                  <Phone className="size-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
+                    Receive a Real Phone Call
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    ArogyaVani PSTN / 2G Cellular Telephony
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                Enter your mobile number below. Our sovereign AI helpline will place a real cellular call to your phone from <span className="font-mono font-bold text-sky-600 dark:text-sky-400">+1 (737) 250-8034</span>.
+              </p>
+
+              <div className="mt-4">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider dark:text-slate-300">
+                  Mobile Number (with country code)
+                </label>
+                <input
+                  type="tel"
+                  value={dialPhone}
+                  onChange={(e) => setDialPhone(e.target.value)}
+                  placeholder="+919876543210"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm font-bold text-slate-900 focus:border-sky-500 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                />
+                <p className="mt-1 text-[10px] text-slate-400">
+                  Example: +918840301998 or 10-digit mobile number.
+                </p>
+              </div>
+
+              <div className="mt-5 flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsDialModalOpen(false)}
+                  className="clay-btn flex-1 py-2 text-xs font-bold text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDialing}
+                  onClick={handleTriggerPhoneCall}
+                  className="clay-btn-primary flex flex-1 items-center justify-center gap-2 py-2 text-xs font-black text-slate-950"
+                >
+                  {isDialing ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Calling...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="size-3.5 stroke-[2.5]" />
+                      <span>Ring My Phone</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
